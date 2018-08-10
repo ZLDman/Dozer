@@ -12,7 +12,7 @@ class Plowie(Cog):
         game = discord.Game(name='%splowie | %d guilds' % (self.bot.config['prefix'], len(self.bot.guilds)))
         await self.bot.change_presence(activity=game)
 
-    async def line_print(self, messageable: discord.abc.Messageable, title, iterable):
+    async def line_print(self, ctx: discord.abc.Messageable, title, iterable, color=discord.Color.default()):
         buf = ""
         embed_buf = []
         for i in map(str, iterable):
@@ -20,14 +20,14 @@ class Plowie(Cog):
                 embed_buf.append(buf)
                 buf = ""
             buf += i + "\n"
-
+        embed_buf.append(buf)
         first = True
         for i in embed_buf:
             if first:
-                await messageable.send(embed=discord.Embed(title=title, description=i))
+                await ctx.send(embed=discord.Embed(title=title, description=i, color=color))
                 first = False
             else:
-                await messageable.send(embed=discord.Embed(description=i))
+                await ctx.send(embed=discord.Embed(description=i, color=color))
 
 
     async def on_ready(self):
@@ -60,7 +60,7 @@ class Plowie(Cog):
     @command()
     async def listservers(self, ctx):
         """Lists the servers that Plowie is in."""
-        await self.line_print(ctx, "List of servers:", self.bot.guilds)
+        await self.line_print(ctx, "List of servers:", self.bot.guilds, color=discord.Color.blue())
 
 def setup(bot):
     bot.add_cog(Plowie(bot))
