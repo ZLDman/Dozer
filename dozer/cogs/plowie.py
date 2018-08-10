@@ -12,6 +12,24 @@ class Plowie(Cog):
         game = discord.Game(name='%splowie | %d guilds' % (self.bot.config['prefix'], len(self.bot.guilds)))
         await self.bot.change_presence(activity=game)
 
+    async def line_print(self, messageable: discord.abc.Messageable, title, iterable):
+        buf = ""
+        embed_buf = []
+        for i in map(str, iterable):
+            if len(buf) + len(i) + 1 > 2048:
+                embed_buf.append(buf)
+                buf = ""
+            buf += i + "\n"
+
+        first = True
+        for i in embed_buf:
+            if first:
+                await messageable.send(embed=discord.Embed(title=title, description=i))
+                first = False
+            else:
+                await messageable.send(embed=discord.Embed(description=i))
+
+
     async def on_ready(self):
         await self.update_status()
 
@@ -27,8 +45,10 @@ class Plowie(Cog):
     async def on_member_leave(self, member):
         pass
 
+
     @command()
     async def plowie(self, ctx):
+        """Display Plowie-specific info"""
         e = discord.Embed(title="Plowie", description=f"Dozer for the masses (build )", color=discord.Color.blue())
         e.set_thumbnail(url=self.bot.user.avatar_url)
         e.add_field(name="About", value="Plowie is a fork of Dozer by the FRC Discord Development Team run by @guineawheek#5381, with a few extras tacked on and less stringent server requirements, making it suitable for personal servers. ")
@@ -36,6 +56,11 @@ class Plowie(Cog):
         e.add_field(name="Support", value="`%help` provides the general command reference; for special inquiries/feature requests contact @guineawheek#5381. Feature requests can be server specific.")
         e.add_field(name="Invite link", value="Want to add Plowie to your server? [Click here!](https://discordapp.com/oauth2/authorize?client_id=474456308813266945&scope=bot&permissions=502656071)")
         await ctx.send(embed=e)
+
+    @command()
+    async def listservers(self, ctx):
+        """Lists the servers that Plowie is in."""
+        await self.line_print(ctx, "List of servers:", self.bot.guilds)
 
 def setup(bot):
     bot.add_cog(Plowie(bot))
