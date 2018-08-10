@@ -8,9 +8,18 @@ class Plowie(Cog):
     def __init__(self, bot):
         super().__init__(bot)
 
-    async def on_ready(self):
+    async def update_status(self):
         game = discord.Game(name='%splowie | %d guilds' % (self.bot.config['prefix'], len(self.bot.guilds)))
         await self.bot.change_presence(activity=game)
+
+    async def on_ready(self):
+        await self.update_status()
+
+    async def on_guild_join(self, guild):
+        await self.update_status()
+
+    async def on_guild_remove(self, guild):
+        await self.update_status()
 
     async def on_member_join(self, member):
         pass
@@ -20,7 +29,7 @@ class Plowie(Cog):
 
     @command()
     async def plowie(self, ctx):
-        e = discord.Embed(title="Plowie", description="Dozer for the masses", color=discord.Color.blue())
+        e = discord.Embed(title="Plowie", description=f"Dozer for the masses (build )", color=discord.Color.blue())
         e.set_thumbnail(url=self.bot.user.avatar_url)
         e.add_field(name="About", value="Plowie is a fork of Dozer by the FRC Discord Development Team run by @guineawheek#5381, with a few extras tacked on and less stringent server requirements, making it suitable for personal servers. ")
         e.add_field(name="Extra features", value="So far, Plowie offers `%afk`. This bot may occasionally get features before they are merged into upstream Dozer. ")
