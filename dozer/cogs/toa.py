@@ -36,10 +36,11 @@ class TOA(Cog):
     async def team(self, ctx, team_num: int):
         """Get information on an FTC team by number."""
         team_data = await self.parser.req("team/" + str(team_num))
+        # UPDATE: no longer broken
         # TOA's rookie year listing is :b:roke, so we have to fix it ourselves
         # This is a _nasty_ hack
         data = self._teams.get(team_num, {
-            'rookie_year': 2017,
+            'rookie_year': 2018,
             'seasons': [{
                 'website': 'n/a',
             }]
@@ -72,7 +73,7 @@ class TOA(Cog):
         await ctx.send('', embed=e)
 
     team.example_usage = """
-    `{prefix}toa team 12670` - show information on team 12670, Eclipse
+    `{prefix}toa team 11115` - show information on team 11115, Gluten Free
     """
 
 
