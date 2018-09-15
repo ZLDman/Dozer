@@ -60,23 +60,23 @@ class General(Cog):
 
     async def _help_all(self, ctx):
         """Gets the help message for all commands."""
-        info = discord.Embed(title='Dozer: Info', description='A guild management bot for FIRST Discord servers',
+        info = discord.Embed(title='Plowie: Info', description='A guild management bot for FIRST Discord servers',
                              color=discord.Color.blue())
         info.set_thumbnail(url=self.bot.user.avatar_url)
         info.add_field(name='About',
-                       value="Dozer: A collaborative bot for FIRST Discord servers, developed by the FRC Discord Server Development Team")
+                       value="Plowie: a fork of Dozer, the collaborative bot for FIRST Discord servers, developed by the FRC Discord Server Development Team")
         info.add_field(name='About `{}{}`'.format(ctx.prefix, ctx.invoked_with), value=inspect.cleandoc("""
         This command can show info for all commands, a specific command, or a category of commands.
         Use `{0}{1} {1}` for more information.
         """.format(ctx.prefix, ctx.invoked_with)), inline=False)
         info.add_field(name='Support',
-                       value="Join our development server at https://discord.gg/bB8tcQ8 for support, to help with development, or if "
+                       value="Join the [Plowie Official Server](https://discord.gg/ZAmpQPD) or the [FRC Discord development server](https://discord.gg/bB8tcQ8) for support, or if "
                              "you have any questions or comments!")
         info.add_field(name="Open Source",
-                       value="Dozer is open source! Feel free to view and contribute to our Python code "
-                             "[on Github](https://github.com/FRCDiscord/Dozer)")
-        info.set_footer(text='Dozer Help | all commands | Info page')
-        await self._show_help(ctx, info, 'Dozer: Commands', '', 'all commands', ctx.bot.commands)
+                       value="Plowie is open source! Feel free to view and contribute to our Python code "
+                             "[on Github](https://github.com/guineawheek/Dozer/tree/Plowie)")
+        info.set_footer(text='Plowie Help | all commands | Info page')
+        await self._show_help(ctx, info, 'Plowie: Commands', '', 'all commands', ctx.bot.commands)
 
     async def _help_command(self, ctx, command):
         """Gets the help message for one command."""
@@ -85,7 +85,7 @@ class General(Cog):
         usage = command.example_usage
         if usage is not None:
             info.add_field(name='Usage', value=usage.format(prefix=ctx.prefix, name=ctx.invoked_with), inline=False)
-        info.set_footer(text='Dozer Help | {!r} command | Info'.format(command.qualified_name))
+        info.set_footer(text='Plowie Help | {!r} command | Info'.format(command.qualified_name))
         await self._show_help(ctx, info, 'Subcommands: {prefix}{signature}', '', '{command.qualified_name!r} command',
                               command.commands if isinstance(command, Group) else set(), command=command, signature=command.signature)
 
@@ -99,7 +99,7 @@ class General(Cog):
     async def _show_help(self, ctx, start_page, title, description, footer, commands, **format_args):
         """Creates and sends a template help message, with arguments filled in."""
         format_args['prefix'] = ctx.prefix
-        footer = 'Dozer Help | {} | Page {}'.format(footer,
+        footer = 'Plowie Help | {} | Page {}'.format(footer,
                                                     '{page_num} of {len_pages}')
         # Page info is inserted as a parameter so page_num and len_pages aren't evaluated now
         if commands:
