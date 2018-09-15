@@ -9,7 +9,7 @@ class Plowie(Cog):
         super().__init__(bot)
 
     async def update_status(self):
-        game = discord.Game(name='%splowie | %d guilds' % (self.bot.config['prefix'], len(self.bot.guilds)))
+        game = discord.Game(name='in the support server | %splowie | %d guilds' % (self.bot.config['prefix'], len(self.bot.guilds)))
         await self.bot.change_presence(activity=game)
 
     async def line_print(self, ctx: discord.abc.Messageable, title, iterable, color=discord.Color.default()):
@@ -53,7 +53,7 @@ class Plowie(Cog):
         e.set_thumbnail(url=self.bot.user.avatar_url)
         e.add_field(name="About", value="Plowie is a fork of Dozer by the FRC Discord Development Team run by @guineawheek#5381, with a few extras tacked on and less stringent server requirements, making it suitable for personal servers. ")
         e.add_field(name="Extra features", value="So far, Plowie offers `%afk`, and the timed mutes/deafens subsystem is much more robust. This bot may occasionally get features before they are merged into upstream Dozer. ")
-        e.add_field(name="Support", value="`%help` provides the general command reference; for special inquiries/feature requests contact @guineawheek#5381. Feature requests can be server specific.")
+        e.add_field(name="Support", value="`%help` provides the general command reference; for special inquiries/feature requests contact @guineawheek#5381 or join the [Plowie official server](https://discord.gg/ZAmpQPD). Feature requests can be server specific.")
         e.add_field(name="Code", value="Check out the code [here!](https://github.com/guineawheek/Dozer/tree/plowie)")
         e.add_field(name="Invite link", value="Want to add Plowie to your server? [Click here!](https://discordapp.com/oauth2/authorize?client_id=474456308813266945&scope=bot&permissions=502656071)")
         await ctx.send(embed=e)
