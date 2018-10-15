@@ -91,9 +91,6 @@ class TBA(Cog):
             year = datetime.datetime.today().year
         try:
             team_media = await self.session.team_media(team_num, year)
-            if not team_media:
-                await ctx.send(f"Unfortunately, there doesn't seem to be any media for team {team_num} in {year}...")
-                return
 
             pages = []
             base = f"FRC Team {team_num} {year} Media: "
@@ -107,33 +104,37 @@ class TBA(Cog):
                     name, url, img_url = {
                         "cdphotothread": (
                             "Chief Delphi",
-                            "https://www.chiefdelphi.com/media/photos/{media.foreign_key}",
-                            "https://www.chiefdelphi.com/media/img/{media.details[image_partial]}"
+                            "https://www.chiefdelphi.com/media/photos/{foreign_key}",
+                            "https://www.chiefdelphi.com/media/img/{image_partial}"
                         ),
                         "imgur": (
                             "Imgur",
-                            "https://imgur.com/{media.foreign_key}",
-                            "https://i.imgur.com/{media.foreign_key}.png"
+                            "https://imgur.com/{foreign_key}",
+                            "https://i.imgur.com/{foreign_key}.png"
                         ),
                         "instagram-image": (
                             "instagram",
-                            "https://www.instagram.com/p/{media.foreign_key}",
-                            "https://www.instagram.com/p/{media.foreign_key}/media"
+                            "https://www.instagram.com/p/{foreign_key}",
+                            "https://www.instagram.com/p/{foreign_key}/media"
                         ),
                         "grabcad": (
                             "GrabCAD",
-                            "https://grabcad.com/library/{media.foreign_key}",
-                            "{media.details[model_image]}"
+                            "https://grabcad.com/library/{foreign_key}",
+                            "{model_image}"
                         )
                     }.get(media.type, (None, None, None))
                     if name is None:
                         print("Whack media", media.__dict__, "unprocessed")
                         continue
-                    page = discord.Embed(title=base + name, url=url.format(media=media))
-                    page.set_image(url=img_url.format(media=media))
+                    media.details['foreign_key'] = media.foreign_key
+                    page = discord.Embed(title=base + name, url=url.format(**media.details))
+                    page.set_image(url=img_url.format(**media.details))
                     pages.append(page)
 
-            await paginate(ctx, pages)
+            if len(pages):
+                await paginate(ctx, pages)
+            else:
+                await ctx.send(f"Unfortunately, there doesn't seem to be any media for team {team_num} in {year}...")
 
         except aiotba.http.AioTBAError:
             raise BadArgument("Couldn't find data for team {}".format(team_num))
