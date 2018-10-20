@@ -74,7 +74,7 @@ class General(Cog):
                              "you have any questions or comments!")
         info.add_field(name="Open Source",
                        value="Plowie is open source! Feel free to view and contribute to our Python code "
-                             "[on Github](https://github.com/guineawheek/Dozer/tree/Plowie)")
+                             "[on Github](https://github.com/guineawheek/Dozer/tree/plowie)")
         info.set_footer(text='Plowie Help | all commands | Info page')
         await self._show_help(ctx, info, 'Plowie: Commands', '', 'all commands', ctx.bot.commands)
 
