@@ -26,6 +26,7 @@ class SafeRoleConverter(RoleConverter):
                 raise
 
 
+# pylint: disable=too-many-public-methods
 class Moderation(Cog):
     """A cog to handle moderation tasks."""
 
@@ -132,7 +133,7 @@ class Moderation(Cog):
             config = session.query(GuildMessageLinks).filter_by(guild_id=msg.guild.id).one_or_none()
             if config is None:
                 return
-            role = discord.utils.get(msg.guild.roles, id=config.role_id)
+            role = msg.guild.get_role(config.role_id)
             if role is None:
                 return
             if role not in msg.author.roles and re.search("https?://", msg.content):
@@ -284,7 +285,7 @@ class Moderation(Cog):
                 role_id = config.role_id
                 if message.channel.id != channel:
                     return
-                await message.author.add_roles(discord.utils.get(message.guild.roles, id=role_id))
+                await message.author.add_roles(message.guild.get_role(role_id))
 
     async def on_message_delete(self, message):
         """When a message is deleted, log it."""
@@ -390,9 +391,8 @@ class Moderation(Cog):
                 settings = MemberRole(id=ctx.guild.id)
                 session.add(settings)
 
-            member_role = discord.utils.get(ctx.guild.roles,
-                                            id=settings.member_role)  # None-safe - nonexistent or non-configured role return None
-
+        # None-safe - nonexistent or non-configured role return None
+        member_role = ctx.guild.get_role(settings.member_role)
         if member_role is not None:
             targets = {member_role}
         else:
@@ -482,7 +482,11 @@ class Moderation(Cog):
     @has_permissions(manage_channels=True)
     @bot_has_permissions(manage_channels=True)
     async def slowmode(self, ctx, slowmode_delay: int):
+        """Set the slowmode message delay for the current channel. Passing 0 disables slowmode."""
         await ctx.channel.edit(slowmode_delay=slowmode_delay, reason=f"Adjusted slowmode at request of {ctx.author}")
+    slowmode.example_usage = """
+    `{prefix}slowmode 20` - set slowmode to 20 seconds per message per user
+    """
 
     @command()
     @has_permissions(ban_members=True)

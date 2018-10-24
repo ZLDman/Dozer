@@ -64,14 +64,15 @@ class General(Cog):
                              color=discord.Color.blue())
         info.set_thumbnail(url=self.bot.user.avatar_url)
         info.add_field(name='About',
-                       value="Plowie: a fork of Dozer, the collaborative bot for FIRST Discord servers, developed by the FRC Discord Server Development Team")
+                       value="Plowie: a fork of Dozer, the collaborative bot for FIRST Discord servers, developed by the FRC"
+                             "Discord Server Development Team and @guineawheek#5381")
         info.add_field(name='About `{}{}`'.format(ctx.prefix, ctx.invoked_with), value=inspect.cleandoc("""
         This command can show info for all commands, a specific command, or a category of commands.
         Use `{0}{1} {1}` for more information.
         """.format(ctx.prefix, ctx.invoked_with)), inline=False)
         info.add_field(name='Support',
-                       value="Join the [Plowie Official Server](https://discord.gg/ZAmpQPD) or the [FRC Discord development server](https://discord.gg/bB8tcQ8) for support, or if "
-                             "you have any questions or comments!")
+                       value="Join our development server at https://discord.gg/ZAmpQPD or ping @guineawheek#5381 for "
+                             "support, to help with development, or if you have any questions or comments!")
         info.add_field(name="Open Source",
                        value="Plowie is open source! Feel free to view and contribute to our Python code "
                              "[on Github](https://github.com/guineawheek/Dozer/tree/plowie)")
@@ -99,8 +100,7 @@ class General(Cog):
     async def _show_help(self, ctx, start_page, title, description, footer, commands, **format_args):
         """Creates and sends a template help message, with arguments filled in."""
         format_args['prefix'] = ctx.prefix
-        footer = 'Plowie Help | {} | Page {}'.format(footer,
-                                                    '{page_num} of {len_pages}')
+        footer = 'Plowie Help | {} | Page {}'.format(footer, '{page_num} of {len_pages}')
         # Page info is inserted as a parameter so page_num and len_pages aren't evaluated now
         if commands:
             command_chunks = list(chunk(sorted(commands, key=lambda cmd: cmd.name), 4))
@@ -162,7 +162,10 @@ class General(Cog):
         perms = 0
         for cmd in ctx.bot.walk_commands():
             perms |= cmd.required_permissions.value
-        await ctx.send('<{}>'.format(discord.utils.oauth_url(ctx.me.id, discord.Permissions(perms))))
+        await ctx.send("This bot is not available to be added to other servers. To invite a bot similar to this one to"
+                       "your server, try [Plowie](https://discordapp.com/oauth2/authorize?client_id=474456308813266945"
+                       "&scope=bot&permissions=268525655)")
+        #await ctx.send('<{}>'.format(discord.utils.oauth_url(ctx.me.id, discord.Permissions(perms))))
 
     @has_permissions(create_instant_invite=True)
     @bot_has_permissions(create_instant_invite=True)
