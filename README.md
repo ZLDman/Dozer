@@ -1,7 +1,7 @@
 
 
 # Dozer
-![travis](https://www.travis-ci.org/FRCDiscord/Dozer.svg?branch=master)
+![travis](https://www.travis-ci.org/guineawheek/Dozer.svg?branch=plowie)
 
 Omnipotent guild management bot for FIRST Discord servers
 

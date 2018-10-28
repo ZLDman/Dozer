@@ -28,7 +28,7 @@ class General(Cog):
     """
 
     @cooldown(1, 10, BucketType.channel)
-    @command(name='help', aliases=['about'])
+    @command(name='help', aliases=['about', 'plowie'])
     @bot_has_permissions(add_reactions=True, embed_links=True,
                          read_message_history=True)  # Message history is for internals of paginate()
     async def base_help(self, ctx, *target):

@@ -9,7 +9,7 @@ class Plowie(Cog):
         super().__init__(bot)
 
     async def update_status(self):
-        game = discord.Game(name='in the support server | %splowie | %d guilds' % (self.bot.config['prefix'], len(self.bot.guilds)))
+        game = discord.Game(name='%help | %d guilds' % (self.bot.config['prefix'], len(self.bot.guilds)))
         await self.bot.change_presence(activity=game)
 
     async def line_print(self, ctx: discord.abc.Messageable, title, iterable, color=discord.Color.default()):
@@ -46,9 +46,10 @@ class Plowie(Cog):
         pass
 
 
+    """
     @command()
     async def plowie(self, ctx):
-        """Display Plowie-specific info"""
+        "\""Display Plowie-specific info""\"
         e = discord.Embed(title="Plowie", description=f"Dozer for the masses (build )", color=discord.Color.blue())
         e.set_thumbnail(url=self.bot.user.avatar_url)
         e.add_field(name="About", value="Plowie is a fork of Dozer by the FRC Discord Development Team run by @guineawheek#5381, with a few extras tacked on and less stringent server requirements, making it suitable for personal servers. ")
@@ -57,7 +58,7 @@ class Plowie(Cog):
         e.add_field(name="Code", value="Check out the code [here!](https://github.com/guineawheek/Dozer/tree/plowie)")
         e.add_field(name="Invite link", value="Want to add Plowie to your server? [Click here!](https://discordapp.com/oauth2/authorize?client_id=474456308813266945&scope=bot&permissions=502656071)")
         await ctx.send(embed=e)
-
+    """
     async def listservers(self, ctx):
         """Lists the servers that Plowie is in."""
         await self.line_print(ctx, "List of servers:", self.bot.guilds, color=discord.Color.blue())
