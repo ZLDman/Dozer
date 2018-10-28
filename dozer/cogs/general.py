@@ -162,10 +162,7 @@ class General(Cog):
         perms = 0
         for cmd in ctx.bot.walk_commands():
             perms |= cmd.required_permissions.value
-        await ctx.send("This bot is not available to be added to other servers. To invite a bot similar to this one to"
-                       "your server, try [Plowie](https://discordapp.com/oauth2/authorize?client_id=474456308813266945"
-                       "&scope=bot&permissions=268525655)")
-        #await ctx.send('<{}>'.format(discord.utils.oauth_url(ctx.me.id, discord.Permissions(perms))))
+        await ctx.send('<{}>'.format(discord.utils.oauth_url(ctx.me.id, discord.Permissions(perms))))
 
     @has_permissions(create_instant_invite=True)
     @bot_has_permissions(create_instant_invite=True)
