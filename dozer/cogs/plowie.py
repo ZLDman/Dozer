@@ -1,18 +1,21 @@
+"""Plowie-specific cog functionality"""
 import discord
 from discord.ext.commands import BadArgument, guild_only
 
 from ._utils import *
 from .. import db
 
+
 class Plowie(Cog):
-    def __init__(self, bot):
-        super().__init__(bot)
+    """Plowie-specific cog functionality"""
 
     async def update_status(self):
+        """Dynamically update the bot's status."""
         game = discord.Game(name='%help | %d guilds' % (self.bot.config['prefix'], len(self.bot.guilds)))
         await self.bot.change_presence(activity=game)
 
     async def line_print(self, ctx: discord.abc.Messageable, title, iterable, color=discord.Color.default()):
+        """Prints out the contents of an iterable into an embed and sends it. Can handle long iterables."""
         buf = ""
         embed_buf = []
         for i in map(str, iterable):
@@ -29,36 +32,26 @@ class Plowie(Cog):
             else:
                 await ctx.send(embed=discord.Embed(description=i, color=color))
 
-
     async def on_ready(self):
+        """Update bot status to remain accurate."""
         await self.update_status()
 
-    async def on_guild_join(self, guild):
+    async def on_guild_join(self, guild):  # pylint: disable=unused-argument
+        """Update bot status to remain accurate."""
         await self.update_status()
 
-    async def on_guild_remove(self, guild):
+    async def on_guild_remove(self, guild):  # pylint: disable=unused-argument
+        """Update bot status to remain accurate."""
         await self.update_status()
 
     async def on_member_join(self, member):
+        """pass"""
         pass
 
     async def on_member_leave(self, member):
+        """pass"""
         pass
 
-
-    """
-    @command()
-    async def plowie(self, ctx):
-        "\""Display Plowie-specific info""\"
-        e = discord.Embed(title="Plowie", description=f"Dozer for the masses (build )", color=discord.Color.blue())
-        e.set_thumbnail(url=self.bot.user.avatar_url)
-        e.add_field(name="About", value="Plowie is a fork of Dozer by the FRC Discord Development Team run by @guineawheek#5381, with a few extras tacked on and less stringent server requirements, making it suitable for personal servers. ")
-        e.add_field(name="Extra features", value="So far, Plowie offers `%afk`, and the timed mutes/deafens subsystem is much more robust. This bot may occasionally get features before they are merged into upstream Dozer. ")
-        e.add_field(name="Support", value="`%help` provides the general command reference; for special inquiries/feature requests contact @guineawheek#5381 or join the [Plowie official server](https://discord.gg/ZAmpQPD). Feature requests can be server specific.")
-        e.add_field(name="Code", value="Check out the code [here!](https://github.com/guineawheek/Dozer/tree/plowie)")
-        e.add_field(name="Invite link", value="Want to add Plowie to your server? [Click here!](https://discordapp.com/oauth2/authorize?client_id=474456308813266945&scope=bot&permissions=502656071)")
-        await ctx.send(embed=e)
-    """
     async def listservers(self, ctx):
         """Lists the servers that Plowie is in."""
         await self.line_print(ctx, "List of servers:", self.bot.guilds, color=discord.Color.blue())

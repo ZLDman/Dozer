@@ -1,3 +1,4 @@
+# pylint: skip-file
 import discord
 from discord.ext.commands import BadArgument, cooldown, BucketType, Group, has_permissions
 
