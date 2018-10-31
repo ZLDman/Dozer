@@ -57,4 +57,5 @@ class Plowie(Cog):
         await self.line_print(ctx, "List of servers:", self.bot.guilds, color=discord.Color.blue())
 
 def setup(bot):
+    """bot setup, just like every other cog!"""
     bot.add_cog(Plowie(bot))
