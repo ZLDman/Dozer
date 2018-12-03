@@ -46,15 +46,14 @@ class Plowie(Cog):
 
     async def on_member_join(self, member):
         """pass"""
-        pass
 
     async def on_member_leave(self, member):
         """pass"""
-        pass
 
     async def listservers(self, ctx):
         """Lists the servers that Plowie is in."""
         await self.line_print(ctx, "List of servers:", self.bot.guilds, color=discord.Color.blue())
+
 
 def setup(bot):
     """bot setup, just like every other cog!"""
