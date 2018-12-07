@@ -116,7 +116,7 @@ class Moderation(Cog):
                                    orig_channel,
                                    embed_color=discord.Color.green(),
                                    global_modlog=global_modlog)
-                self.bot.loop.create_task(coro=punishment.finished_callback(self, target))
+                self.bot.loop.create_task(punishment.finished_callback(self, target))
 
             ent = session.query(PunishmentTimerRecord).filter_by(id=ent_id).one_or_none() # necessary to refresh the entry for the current session
             if ent:
@@ -141,7 +141,7 @@ class Moderation(Cog):
                 return
             if role not in msg.author.roles and re.search("https?://", msg.content):
                 await msg.delete()
-                self.bot.loop.create_task(coro=self._check_links_warn(msg, role))
+                self.bot.loop.create_task(self._check_links_warn(msg, role))
                 return True
         return False
 
