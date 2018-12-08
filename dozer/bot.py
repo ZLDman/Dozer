@@ -44,7 +44,7 @@ class DozerContext(commands.Context):
             content = utils.clean(self, content, mass=True, member=False, role=False, channel=False)
 
         if "embed" in kwargs and isinstance(kwargs["embed"], discord.Embed):
-            for field in kwargs["embed"]:
+            for field in kwargs["embed"].fields:
                 if not field.name and field.value:
                     dozer_logger.error(f"Invalid embed values {field.name!r}: {field.value!r}")
         return await super().send(content, **kwargs)
