@@ -16,15 +16,38 @@ class Development(Cog):
     Commands useful for developing the bot.
     These commands are restricted to bot developers.
     """
-    eval_globals = {}
-    for module in ('asyncio', 'collections', 'discord', 'inspect', 'itertools'):
-        eval_globals[module] = __import__(module)
-    eval_globals['__builtins__'] = __import__('builtins')
+    def __init__(self, bot):
+        super().__init__(bot)
+        self.eval_globals = {}
+        for module in ('asyncio', 'collections', 'discord', 'inspect', 'itertools'):
+            self.eval_globals[module] = __import__(module)
+        self.eval_globals['__builtins__'] = __import__('builtins')
+        for attr in ('line_print',):
+            self.eval_globals[attr] = getattr(self, attr)
 
     def __local_check(self, ctx):  # All of this cog is only available to devs
         if ctx.author.id not in ctx.bot.config['developers']:
             raise NotOwner('you are not a developer!')
         return True
+
+    @staticmethod
+    async def line_print(ctx: discord.abc.Messageable, title, iterable, color=discord.Color.default()):
+        """Prints out the contents of an iterable into an embed and sends it. Can handle long iterables."""
+        buf = ""
+        embed_buf = []
+        for i in map(str, iterable):
+            if len(buf) + len(i) + 1 > 2048:
+                embed_buf.append(buf)
+                buf = ""
+            buf += i + "\n"
+        embed_buf.append(buf)
+        first = True
+        for i in embed_buf:
+            if first:
+                await ctx.send(embed=discord.Embed(title=title, description=i, color=color))
+                first = False
+            else:
+                await ctx.send(embed=discord.Embed(description=i, color=color))
 
     @command()
     async def reload(self, ctx, cog):
@@ -89,6 +112,11 @@ class Development(Cog):
     pseudo.example_usage = """
     `{prefix}su cooldude#1234 {prefix}ping` - simulate cooldude sending `{prefix}ping`
     """
+
+    @command()
+    async def listservers(self, ctx):
+        """Lists the servers that Plowie is in."""
+        await self.line_print(ctx, "List of servers:", self.bot.guilds, color=discord.Color.blue())
 
 
 def load_function(code, globals_, locals_):
