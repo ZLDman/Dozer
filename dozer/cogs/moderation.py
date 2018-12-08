@@ -7,7 +7,7 @@ from typing import Union
 from logging import getLogger
 
 import discord
-from discord.ext.commands import BadArgument, has_permissions, RoleConverter
+from discord.ext.commands import BadArgument, has_permissions, RoleConverter, guild_only
 
 from ._utils import *
 from .. import db
@@ -289,9 +289,7 @@ class Moderation(Cog):
 
     async def on_message_delete(self, message):
         """When a message is deleted, log it."""
-        e = discord.Embed(type='rich')
-        e.title = 'Message Deletion'
-        e.color = 0xFF0000
+        e = discord.Embed(type='rich', title='Message Deletion', color=0xff0000)
         e.timestamp = datetime.datetime.utcnow()
         e.add_field(name='Author', value=message.author)
         e.add_field(name='Author pingable', value=message.author.mention)
@@ -325,9 +323,7 @@ class Moderation(Cog):
             return
         if after.edited_at is not None or before.edited_at is not None:
             # There is a reason for this. That reason is that otherwise, an infinite spam loop occurs
-            e = discord.Embed(type='rich')
-            e.title = 'Message Edited'
-            e.color = 0xFFC400
+            e = discord.Embed(type='rich', title='Message Edited', color=0xffc400)
             e.timestamp = after.edited_at
             e.add_field(name='Author', value=before.author)
             e.add_field(name='Author pingable', value=before.author.mention)
@@ -369,7 +365,6 @@ class Moderation(Cog):
                         await channel.send(embed=e)
 
     """=== Direct moderation commands ==="""
-
     @command()
     @has_permissions(kick_members=True)
     async def warn(self, ctx, member: discord.Member, *, reason):
@@ -489,10 +484,15 @@ class Moderation(Cog):
     """
 
     @command()
+    @guild_only()
     @has_permissions(ban_members=True)
     @bot_has_permissions(ban_members=True)
     async def ban(self, ctx, user_mention: discord.User, *, reason="No reason provided"):
         """Bans the user mentioned."""
+        member = ctx.guild.get_member(user_mention.id)
+        if member and member.top_role >= ctx.guild.me.top_role:
+            await ctx.send(f"{ctx.author.mention}, this user's top role is the same as or higher than mine!")
+            return
         await self.mod_log(actor=ctx.author, action="banned", target=user_mention, reason=reason, orig_channel=ctx.channel)
         await ctx.guild.ban(user_mention, reason=reason)
     ban.example_usage = """
@@ -515,6 +515,10 @@ class Moderation(Cog):
     @bot_has_permissions(kick_members=True)
     async def kick(self, ctx, user_mention: discord.User, *, reason="No reason provided"):
         """Kicks the user mentioned."""
+        member = ctx.guild.get_member(user_mention.id)
+        if member and member.top_role >= ctx.guild.me.top_role:
+            await ctx.send(f"{ctx.author.mention}, this user's top role is the same as or higher than mine!")
+            return
         await self.mod_log(actor=ctx.author, action="kicked", target=user_mention, reason=reason, orig_channel=ctx.channel)
         await ctx.guild.kick(user_mention, reason=reason)
     kick.example_usage = """

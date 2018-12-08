@@ -2,7 +2,7 @@
 import datetime
 import typing
 import discord
-from discord.ext.commands import has_permissions
+from discord.ext.commands import has_permissions, guild_only
 
 from ._utils import *
 from .. import db
@@ -75,6 +75,8 @@ class Starboard(Cog):
     async def on_reaction_add(self, reaction, member):
         """Handles core reaction logic."""
         msg = reaction.message
+        if not msg.guild:
+            return
         if msg.guild.id in self.config_cache:
             config = self.config_cache[msg.guild.id]
         else:
@@ -97,6 +99,7 @@ class Starboard(Cog):
             except discord.DiscordException:
                 pass
 
+    @guild_only()
     @group(invoke_without_command=True)
     @bot_has_permissions(embed_links=True)
     async def starboard(self, ctx):

@@ -138,8 +138,7 @@ class TOA(Cog):
         e = discord.Embed(color=embed_color,
                           title=f'FIRST® Tech Challenge Team {team_num}',
                           url=f'https://www.theorangealliance.org/teams/{team_num}')
-                          # icon_url='https://cdn.discordapp.com/icons/342152047753166859/de4d258c0cab5bee0b04d406172ec585.jpg')
-        e.add_field(name='Name', value=season_data["name"])
+        e.add_field(name='Name', value=season_data["name"].strip() or "_ _")  # renders as blank on clients
         e.add_field(name='Rookie Year', value=team_data['rookie_year'])
         e.add_field(name='Location', value=', '.join((season_data["city"], season_data["state_prov"], season_data["country"])))
         e.add_field(name='Website', value=website or 'n/a')
