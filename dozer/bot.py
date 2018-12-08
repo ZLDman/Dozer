@@ -58,19 +58,31 @@ class Dozer(commands.Bot):
         if 'log_level' in config:
             dozer_log_handler.setLevel(config['log_level'])
 
-    async def on_ready(self):
-        """Things to run when the bot has initialized and signed in"""
+    async def update_status(self):
+        """Dynamically update the bot's status."""
         dozer_logger.info('Signed in as {}#{} ({})'.format(self.user.name, self.user.discriminator, self.user.id))
         if self.config['is_backup']:
             status = discord.Status.dnd
         else:
             status = discord.Status.online
-        game = discord.Game(name='%shelp | %d guilds' % (self.config['prefix'], len(self.guilds)))
+        game = discord.Game(name=f"{self.config['prefix']}help | {len(self.guilds)} guilds")
         try:
             await self.change_presence(activity=game, status=status)
         except TypeError:
             dozer_logger.warning("You are running an older version of the discord.py rewrite (with breaking changes)! "
                                  "To upgrade, run `pip install -r requirements.txt --upgrade`")
+
+    async def on_ready(self):
+        """Things to run when the bot has initialized and signed in"""
+        await self.update_status()
+
+    async def on_guild_join(self, guild):  # pylint: disable=unused-argument
+        """Update bot status to remain accurate."""
+        await self.update_status()
+
+    async def on_guild_remove(self, guild):  # pylint: disable=unused-argument
+        """Update bot status to remain accurate."""
+        await self.update_status()
 
     async def get_context(self, message, *, cls=DozerContext):
         return await super().get_context(message, cls=cls)
