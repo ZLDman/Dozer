@@ -30,7 +30,7 @@ class Nicknames(Cog):
         """Handles adding the nickname back on server join."""
         with db.Session() as session:
             nick = session.query(NicknameTable).filter_by(user_id=member.id, guild_id=member.guild.id).one_or_none()
-            if nick is None or not nick.enabled:
+            if not nick or not nick.enabled or not member.guild.me.guild_permissions.manage_nicknames or member.top_role >= member.guild.me.top_role:
                 return
             await member.edit(nick=nick.nickname)
 

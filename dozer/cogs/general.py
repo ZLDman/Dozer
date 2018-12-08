@@ -157,7 +157,9 @@ class General(Cog):
     @command()
     async def nick(self, ctx, *, nicktochangeto):
         """Allows a member to change their nickname."""
-        await discord.Member.edit(ctx.author, nick=nicktochangeto[:32])
+        if ctx.author.top_role >= ctx.guild.me.top_role:
+            await ctx.send(f"{ctx.author.mention}, your top role is the same as or higher than mine!")
+        await ctx.author.edit(nick=nicktochangeto[:32])
         await ctx.send("Nick successfully changed to " + nicktochangeto[:32])
         if len(nicktochangeto) > 32:
             await ctx.send("Warning: truncated nickname to 32 characters")
