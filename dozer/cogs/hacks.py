@@ -17,7 +17,10 @@ class Hacks(Cog):
 
     async def on_member_join(self, member):
         if member.guild.id == FTC_DISCORD_ID:
-            await member.send("""Welcome to the FTC Discord! Please read through #server-rules-info for information on how to access the rest of the server!""")
+            try:
+                await member.send("""Welcome to the FTC Discord! Please read through #server-rules-info for information on how to access the rest of the server!""")
+            except discord.Forbidden:
+                self.bot.logger.info(f"@{member} has blocked me?")
         logs = self.bot.get_channel(JOINED_LOGS_ID)
         res = f"```New user {member} ({member.id})\nInvite summary:\n"
         for i in await member.guild.invites():
@@ -91,20 +94,6 @@ _Please set your nickname with `%nick NAME - TEAM#` in #bot-spam to reflect your
             
             await ctx.send(embed=embed)
 
-    
-    @has_permissions(administrator=True)#move_members=True)
-    @bot_has_permissions(manage_channels=True)#, move_members=True)
-    @command()
-    async def voicekick(self, ctx, member: discord.Member, reason="No reason provided"):
-        async with ctx.typing():
-            if not member.voice.channel:
-                await ctx.send("User is not in a voice channel!")
-                return
-            vc = await ctx.guild.create_voice_channel("_dozer_voicekick", reason=reason)
-            await member.move_to(vc, reason=reason)
-            await vc.delete(reason=reason)
-            await ctx.send(f"{member} has been kicked from voice chat.")
-    
     @has_permissions(manage_roles=True)
     @bot_has_permissions(manage_roles=True)
     @command()
@@ -113,6 +102,7 @@ _Please set your nickname with `%nick NAME - TEAM#` in #bot-spam to reflect your
             await ctx.bot.cogs["Moderation"].permoverride(user=member, read_messages=None)
         await ctx.send("Overwrote perms for {member}")
         #ctx.bot.cogs["Moderation"].permoverride(user=member
+        
     @has_permissions(add_reactions=True)
     @bot_has_permissions(add_reactions=True)
     @command()

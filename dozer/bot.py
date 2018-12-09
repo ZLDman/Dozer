@@ -57,6 +57,7 @@ class Dozer(commands.Bot):
     def __init__(self, config):
         super().__init__(command_prefix=config['prefix'])
         self.config = config
+        self.logger = dozer_logger
         self._restarting = False
         self.check(self.global_checks)
         self.http_session = self.http._session
@@ -138,6 +139,7 @@ class Dozer(commands.Bot):
             return '%s: %s' % (type_msg, utils.clean(ctx, err.args[0]))
         else:
             return type_msg
+
     def global_checks(self, ctx):
         """Checks that should be executed before passed to the command"""
         if ctx.author.bot:
