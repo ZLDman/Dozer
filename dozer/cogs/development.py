@@ -115,8 +115,11 @@ class Development(Cog):
 
     @command()
     async def listservers(self, ctx):
-        """Lists the servers that Plowie is in."""
+        """Lists the servers that the bot is in. Only accessible to developers."""
         await self.line_print(ctx, "List of servers:", self.bot.guilds, color=discord.Color.blue())
+    listservers.example_usage = """
+    `{prefix}listservers` - display the servers the bot is in. 
+    """
 
 
 def load_function(code, globals_, locals_):

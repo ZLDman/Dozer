@@ -372,7 +372,7 @@ class Moderation(Cog):
         await self.mod_log(actor=ctx.author, action="warned", target=member, orig_channel=ctx.channel, reason=reason)
 
     warn.example_usage = """
-    `{prefix}`warn @user reason - warns a user for "reason"
+    `{prefix}warn @user reason` - warns a user for "reason"
     """
 
     @command()
@@ -496,7 +496,7 @@ class Moderation(Cog):
         await self.mod_log(actor=ctx.author, action="banned", target=user_mention, reason=reason, orig_channel=ctx.channel)
         await ctx.guild.ban(user_mention, reason=reason)
     ban.example_usage = """
-    `{prefix}ban @user reason - ban @user for a given (optional) reason
+    `{prefix}ban @user reason` - ban @user for a given (optional) reason
     """
 
     @command()
@@ -507,7 +507,7 @@ class Moderation(Cog):
         await ctx.guild.unban(user_mention, reason=reason)
         await self.mod_log(actor=ctx.author, action="banned", target=user_mention, reason=reason, orig_channel=ctx.channel)
     unban.example_usage = """
-    `{prefix}unban user_id reason - unban the user corresponding to the ID for a given (optional) reason
+    `{prefix}unban user_id reason` - unban the user corresponding to the ID for a given (optional) reason
     """
 
     @command()
@@ -522,7 +522,7 @@ class Moderation(Cog):
         await self.mod_log(actor=ctx.author, action="kicked", target=user_mention, reason=reason, orig_channel=ctx.channel)
         await ctx.guild.kick(user_mention, reason=reason)
     kick.example_usage = """
-    `{prefix}kick @user reason - kick @user for a given (optional) reason
+    `{prefix}kick @user reason` - kick @user for a given (optional) reason
     """
 
     @command()
@@ -553,7 +553,7 @@ class Moderation(Cog):
             else:
                 await ctx.send("Member is not muted!")
     unmute.example_usage = """
-    `{prefix}unmute @user reason - unmute @user for a given (optional) reason
+    `{prefix}unmute @user reason` - unmute @user for a given (optional) reason
     """
 
     @command()
@@ -586,7 +586,7 @@ class Moderation(Cog):
                 await ctx.send("You are already deafened!")
 
     selfdeafen.example_usage = """
-    `{prefix}selfdeafen time (1h5m, both optional) reason`: deafens you if you need to get work done
+    `{prefix}selfdeafen time (1h5m, both optional) reason` - deafens you if you need to get work done
     """
 
     @command()
@@ -601,7 +601,24 @@ class Moderation(Cog):
             else:
                 await ctx.send("Member is not deafened!")
     undeafen.example_usage = """
-    `{prefix}undeafen @user reason - undeafen @user for a given (optional) reason
+    `{prefix}undeafen @user reason` - undeafen @user for a given (optional) reason
+    """
+
+    @has_permissions(move_members=True)
+    @bot_has_permissions(manage_channels=True, move_members=True)
+    @command()
+    async def voicekick(self, ctx, member: discord.Member, reason="No reason provided"):
+        """Kick a user from voice chat. This is most useful if their perms to rejoin have already been removed."""
+        async with ctx.typing():
+            if not member.voice.channel:
+                await ctx.send("User is not in a voice channel!")
+                return
+            vc = await ctx.guild.create_voice_channel("_dozer_voicekick", reason=reason)
+            await member.move_to(vc, reason=reason)
+            await vc.delete(reason=reason)
+            await ctx.send(f"{member} has been kicked from voice chat.")
+    voicekick.example_usage = """
+    `{prefix}voicekick @user reason` - kick @user out of voice
     """
 
     """=== Configuration commands ==="""

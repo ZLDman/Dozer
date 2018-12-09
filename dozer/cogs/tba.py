@@ -17,6 +17,7 @@ from ._utils import *
 
 
 class TBA(Cog):
+    embed_color = 0x3f51b5
     """Commands that talk to The Blue Alliance"""
     def __init__(self, bot):
         super().__init__(bot)
@@ -52,7 +53,13 @@ class TBA(Cog):
         except aiotba.http.AioTBAError:
             team_district_data = None
 
-        e = discord.Embed(color=discord.Color.blurple(),
+        if team_data.city is None:
+            # teams with a null city are usually just a team number entry and some late 90s event data.
+            # see https://www.thebluealliance.com/team/13 for an example.
+            await ctx.send(f"Team {team_num} existed, but there is no data available!")
+            return
+
+        e = discord.Embed(color=self.embed_color,
                           title='FIRST® Robotics Competition Team {}'.format(team_num),
                           url='https://www.thebluealliance.com/team/{}'.format(team_num))
         e.set_thumbnail(url='https://frcavatars.herokuapp.com/get_image?team={}'.format(team_num))
@@ -63,7 +70,8 @@ class TBA(Cog):
         e.add_field(name='Website', value=team_data.website)
         if team_district_data:
             e.add_field(name='District', value=f"{team_district.display_name} [{team_district.abbreviation.upper()}]")
-        e.add_field(name='Championship', value=team_data.home_championship[max(team_data.home_championship.keys())])
+        e.add_field(name='Championship',
+                    value=team_data.home_championship[max(team_data.home_championship.keys())] if team_data.home_championship else "No data")
         # e.add_field(name='TBA Link', value='https://www.thebluealliance.com/team/{}'.format(team_num))
         e.set_footer(text='Triggered by ' + ctx.author.display_name)
         await ctx.send(embed=e)
@@ -77,9 +85,9 @@ class TBA(Cog):
     async def eventsfor(self, ctx, team_num: int, year: int = None):
         """Get the events a team is registered for a given year. Defaults to current (or upcoming) year."""
         try:
-            events = await self.session.team_events(team_num, year=year)
             # will fall back to the current year
             year = year or (await self.session.status()).current_season
+            events = await self.session.team_events(team_num, year=year)
         except aiotba.http.AioTBAError:
             raise BadArgument(f"Couldn't find data for team {team_num}")
 
@@ -87,7 +95,7 @@ class TBA(Cog):
             await ctx.send(f"This team is not registered for any events in {year}!")
             return
 
-        e = discord.Embed(color=discord.Color.blurple())
+        e = discord.Embed(color=self.embed_color)
 
         e.add_field(name=f"Registered events for FRC Team {team_num} in {year}:",
                     value="\n".join(i.name for i in events))
@@ -138,7 +146,7 @@ class TBA(Cog):
                         )
                     }.get(media.type, (None, None, None))
                     if name is None:
-                        # print("Whack media", media.__dict__, "unprocessed")
+                        # this is actually most likely the team icon image
                         continue
                     media.details['foreign_key'] = media.foreign_key
                     page = discord.Embed(title=base + name, url=url.format(**media.details))
@@ -161,16 +169,17 @@ class TBA(Cog):
     @bot_has_permissions(embed_links=True)
     async def awards(self, ctx, team_num: int, year: int = None):
         """Gets a list of awards the specified team has won during a year. """
-        try:
-            awards_data = await self.session.team_awards(team_num, year=year)
-            events_data = await self.session.team_events(team_num, year=year)
-            event_key_map = {event.key: event for event in events_data}
-        except aiotba.http.AioTBAError:
-            raise BadArgument("Couldn't find data for team {}".format(team_num))
+        async with ctx.typing():
+            try:
+                awards_data = await self.session.team_awards(team_num, year=year)
+                events_data = await self.session.team_events(team_num, year=year)
+                event_key_map = {event.key: event for event in events_data}
+            except aiotba.http.AioTBAError:
+                raise BadArgument("Couldn't find data for team {}".format(team_num))
 
         pages = []
         for award_year, awards in itertools.groupby(awards_data, lambda a: a.year):
-            e = discord.Embed(title=f"Awards for FRC Team {team_num} in {award_year}:", color=discord.Color.blurple())
+            e = discord.Embed(title=f"Awards for FRC Team {team_num} in {award_year}:", color=self.embed_color)
             for event_key, event_awards in itertools.groupby(list(awards), lambda a: a.event_key):
                 event = event_key_map[event_key]
                 e.add_field(name=f"{event.name} [{event_key}]",
@@ -197,7 +206,7 @@ class TBA(Cog):
         """
         try:
             team_data = await self.session.team(team_num)
-            e = discord.Embed(color=discord.Color.blurple())
+            e = discord.Embed(color=self.embed_color)
             e.set_author(name='FIRST® Robotics Competition Team {}'.format(team_num),
                          url='https://www.thebluealliance.com/team/{}'.format(team_num),
                          icon_url='https://frcavatars.herokuapp.com/get_image?team={}'.format(team_num))
@@ -284,8 +293,8 @@ class TBA(Cog):
                 utc_offset += 1
             tzname = timezone["timeZoneName"]
         else:
-            async with async_timeout.timeout(5) as _, self.bot.http_session.get(urljoin(
-                    self.bot.config['tz_url'], str(geolocation.latitude) + "/" + str(geolocation.longitude))) as r:
+            async with async_timeout.timeout(5), self.bot.http_session.get(urljoin(
+                    self.bot.config['tz_url'], f"{geolocation.latitude}/{geolocation.longitude}")) as r:
                 r.raise_for_status()
                 data = await r.json()
                 utc_offset = data["utc_offset"]

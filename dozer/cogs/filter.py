@@ -47,7 +47,7 @@ class Filter(Cog):
 
     async def check_filters(self, message):
         """Check all the filters for a certain message (with it's guild)"""
-        if message.author.id == self.bot.user.id or message.guild is None:
+        if message.author.id == self.bot.user.id or message.guild is None or isinstance(message.author, discord.User):
             return
         with db.Session() as session:
             roles = session.query(WordFilterRoleWhitelist).filter_by(guild_id=message.guild.id).all()
