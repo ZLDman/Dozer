@@ -163,6 +163,9 @@ class General(Cog):
         await ctx.send("Nick successfully changed to " + nicktochangeto[:32])
         if len(nicktochangeto) > 32:
             await ctx.send("Warning: truncated nickname to 32 characters")
+    nick.example_usage = """
+    `{prefix}nick cool nickname` - set your nickname to "cool nickname" 
+    """
 
     @command()
     async def invite(self, ctx):
@@ -177,6 +180,9 @@ class General(Cog):
                        "your server, try [Plowie](https://discordapp.com/oauth2/authorize?client_id=474456308813266945"
                        "&scope=bot&permissions=268525655)")
         #await ctx.send('<{}>'.format(discord.utils.oauth_url(ctx.me.id, discord.Permissions(perms))))
+    invite.example_usage = """
+    `{prefix}invite` - display the bot's invite link. 
+    """
 
     @has_permissions(create_instant_invite=True)
     @bot_has_permissions(create_instant_invite=True)
