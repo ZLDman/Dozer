@@ -107,7 +107,7 @@ class Moderation(Cog):
         await asyncio.sleep(seconds)
 
         with db.Session() as session:
-            user = session.query(punishment).filter_by(id=target.id, guild_id=target.guild.id).one_or_none()
+            user = session.query(punishment).filter_by(id=target.id, guild=target.guild.id).one_or_none()
             if user is not None:
                 await self.mod_log(actor,
                                    "un" + punishment.past_participle,
