@@ -107,7 +107,7 @@ class Moderation(Cog):
         await asyncio.sleep(seconds)
 
         with db.Session() as session:
-            user = session.query(punishment).filter_by(id=target.id).one_or_none()
+            user = session.query(punishment).filter_by(id=target.id, guild_id=target.guild.id).one_or_none()
             if user is not None:
                 await self.mod_log(actor,
                                    "un" + punishment.past_participle,
@@ -118,7 +118,7 @@ class Moderation(Cog):
                                    global_modlog=global_modlog)
                 self.bot.loop.create_task(punishment.finished_callback(self, target))
 
-            ent = session.query(PunishmentTimerRecord).filter_by(id=ent_id).one_or_none() # necessary to refresh the entry for the current session
+            ent = session.query(PunishmentTimerRecord).filter_by(id=ent_id).one_or_none()  # necessary to refresh the entry for the current session
             if ent:
                 session.delete(ent)
 
