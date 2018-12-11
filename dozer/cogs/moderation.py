@@ -55,7 +55,7 @@ class Moderation(Cog):
             if modlog_channel is not None:
                 if global_modlog:
                     channel = actor.guild.get_channel(modlog_channel.modlog_channel)
-                    if channel is not None and channel != orig_channel: # prevent duplicate embeds
+                    if channel is not None and channel != orig_channel:  # prevent duplicate embeds
                         await channel.send(embed=modlog_embed)
             else:
                 if orig_channel is not None:
@@ -98,7 +98,8 @@ class Moderation(Cog):
                 orig_channel_id=orig_channel.id if orig_channel else 0,
                 type=punishment.type,
                 reason=reason,
-                target_ts=int(seconds + time.time())
+                target_ts=int(seconds + time.time()),
+                send_modlog=global_modlog
             )
             session.add(ent)
             session.commit() # necessary to generate an autoincrement id
@@ -233,8 +234,13 @@ class Moderation(Cog):
                 reason = r.reason or ""
                 seconds = max(int(r.target_ts - time.time()), 0.01)
                 session.delete(r)
-                self.bot.loop.create_task(self.punishment_timer(seconds, target, PunishmentTimerRecord.type_map[punishment_type], reason, actor,
-                                                                orig_channel))
+                self.bot.loop.create_task(self.punishment_timer(seconds,
+                                                                target,
+                                                                PunishmentTimerRecord.type_map[punishment_type],
+                                                                reason,
+                                                                actor,
+                                                                orig_channel=orig_channel,
+                                                                global_modlog=r.send_modlog))
                 getLogger('dozer').info(f"Restarted {PunishmentTimerRecord.type_map[punishment_type].__name__} of {target} in {guild}")
 
     async def on_member_join(self, member):
@@ -835,6 +841,7 @@ class PunishmentTimerRecord(db.DatabaseObject):
     type = db.Column(db.BigInteger)
     reason = db.Column(db.String, nullable=True)
     target_ts = db.Column(db.BigInteger)
+    send_modlog = db.Column(db.Boolean)
 
     type_map = {p.type: p for p in (Mute, Deafen)}
 
