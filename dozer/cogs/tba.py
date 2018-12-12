@@ -17,8 +17,9 @@ from ._utils import *
 
 
 class TBA(Cog):
-    embed_color = 0x3f51b5
     """Commands that talk to The Blue Alliance"""
+    embed_color = 0x3f51b5
+
     def __init__(self, bot):
         super().__init__(bot)
         tba_config = bot.config['tba']
