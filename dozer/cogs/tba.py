@@ -109,9 +109,9 @@ class TBA(Cog):
     @bot_has_permissions(embed_links=True)
     async def media(self, ctx, team_num: int, year: int = None):
         """Get media of a team for a given year. Defaults to current year."""
-        if year is None:
-            year = datetime.datetime.today().year
         try:
+            if year is None:
+                year = (await self.session.status()).current_season
             team_media = await self.session.team_media(team_num, year)
 
             pages = []
@@ -143,6 +143,11 @@ class TBA(Cog):
                             "GrabCAD",
                             "https://grabcad.com/library/{foreign_key}",
                             "{model_image}"
+                        ),
+                        "external-link": (
+                            "Hall Of Fame Chairman's Essay",
+                            "{foreign_key}",
+                            "{foreign_key}"
                         )
                     }.get(media.type, (None, None, None))
                     if name is None:
@@ -210,7 +215,7 @@ class TBA(Cog):
             e.set_author(name='FIRST® Robotics Competition Team {}'.format(team_num),
                          url='https://www.thebluealliance.com/team/{}'.format(team_num),
                          icon_url='https://frcavatars.herokuapp.com/get_image?team={}'.format(team_num))
-            e.add_field(name='Raw Data', value=pformat(team_data.__dict__))
+            e.add_field(name='Raw Data', value=f"```python\n{pformat(team_data.__dict__)}\n```")
             e.set_footer(text='Triggered by ' + ctx.author.display_name)
             await ctx.send(embed=e)
         except aiotba.http.AioTBAError:
