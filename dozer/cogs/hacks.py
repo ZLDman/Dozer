@@ -103,8 +103,8 @@ _Please set your nickname with `%nick NAME - TEAM#` in #bot-spam to reflect your
         await ctx.send("Overwrote perms for {member}")
         #ctx.bot.cogs["Moderation"].permoverride(user=member
 
-    @has_permissions(manage_roles=true)
-    @bot_has_permissions(manage_roles=true)
+    @has_permissions(manage_roles=True)
+    @bot_has_permissions(manage_roles=True)
     @command()
     async def takeemotes(self, ctx, member: discord.member):
         async with ctx.typing():
