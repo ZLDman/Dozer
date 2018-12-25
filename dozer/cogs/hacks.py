@@ -98,11 +98,27 @@ _Please set your nickname with `%nick NAME - TEAM#` in #bot-spam to reflect your
     @bot_has_permissions(manage_roles=True)
     @command()
     async def forceundeafen(self, ctx, member: discord.Member):
-        with ctx.typing():
-            await ctx.bot.cogs["Moderation"].permoverride(user=member, read_messages=None)
+        async with ctx.typing():
+            await ctx.bot.cogs["Moderation"].perm_override(member, read_messages=None)
         await ctx.send("Overwrote perms for {member}")
         #ctx.bot.cogs["Moderation"].permoverride(user=member
-        
+
+    @has_permissions(manage_roles=true)
+    @bot_has_permissions(manage_roles=true)
+    @command()
+    async def takeemotes(self, ctx, member: discord.member):
+        async with ctx.typing():
+            await ctx.bot.cogs["moderation"].perm_override(member, external_emojis=False)
+        await ctx.send("overwrote perms for {member}")
+
+    @has_permissions(manage_roles=True)
+    @bot_has_permissions(manage_roles=True)
+    @command()
+    async def giveemotes(self, ctx, member: discord.Member):
+        async with ctx.typing():
+            await ctx.bot.cogs["Moderation"].perm_override(member, external_emojis=None)
+        await ctx.send("overwrote perms for {member}")
+
     @has_permissions(add_reactions=True)
     @bot_has_permissions(add_reactions=True)
     @command()
