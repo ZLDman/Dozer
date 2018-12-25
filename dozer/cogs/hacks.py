@@ -106,7 +106,7 @@ _Please set your nickname with `%nick NAME - TEAM#` in #bot-spam to reflect your
     @has_permissions(manage_roles=True)
     @bot_has_permissions(manage_roles=True)
     @command()
-    async def takeemotes(self, ctx, member: discord.member):
+    async def takeemotes(self, ctx, member: discord.Member):
         async with ctx.typing():
             await ctx.bot.cogs["moderation"].perm_override(member, external_emojis=False)
         await ctx.send("overwrote perms for {member}")
