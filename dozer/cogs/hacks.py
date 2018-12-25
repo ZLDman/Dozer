@@ -108,8 +108,8 @@ _Please set your nickname with `%nick NAME - TEAM#` in #bot-spam to reflect your
     @command()
     async def takeemotes(self, ctx, member: discord.Member):
         async with ctx.typing():
-            await ctx.bot.cogs["moderation"].perm_override(member, external_emojis=False)
-        await ctx.send("overwrote perms for {member}")
+            await ctx.bot.cogs["Moderation"].perm_override(member, external_emojis=False)
+        await ctx.send("took away external emote perms for {member}")
 
     @has_permissions(manage_roles=True)
     @bot_has_permissions(manage_roles=True)
@@ -117,7 +117,7 @@ _Please set your nickname with `%nick NAME - TEAM#` in #bot-spam to reflect your
     async def giveemotes(self, ctx, member: discord.Member):
         async with ctx.typing():
             await ctx.bot.cogs["Moderation"].perm_override(member, external_emojis=None)
-        await ctx.send("overwrote perms for {member}")
+        await ctx.send("reset external emote perms for {member}")
 
     @has_permissions(add_reactions=True)
     @bot_has_permissions(add_reactions=True)
