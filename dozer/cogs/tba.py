@@ -9,7 +9,6 @@ import discord
 from discord.ext.commands import BadArgument
 import googlemaps
 import async_timeout
-# import tbapi
 import aiotba
 from geopy.geocoders import Nominatim
 
@@ -47,18 +46,18 @@ class TBA(Cog):
             team_data = await self.session.team(team_num)
         except aiotba.http.AioTBAError:
             raise BadArgument(f"Couldn't find data for team {team_num}.")
-        try:
-            team_district_data = await self.session.team_districts(team_num)
-            if team_district_data:
-                team_district = max(team_district_data, key=lambda d: d.year)
-        except aiotba.http.AioTBAError:
-            team_district_data = None
 
         if team_data.city is None:
             # teams with a null city are usually just a team number entry and some late 90s event data.
             # see https://www.thebluealliance.com/team/13 for an example.
             await ctx.send(f"Team {team_num} existed, but there is no data available!")
             return
+        try:
+            team_district_data = await self.session.team_districts(team_num)
+            if team_district_data:
+                team_district = max(team_district_data, key=lambda d: d.year)
+        except aiotba.http.AioTBAError:
+            team_district_data = None
 
         e = discord.Embed(color=self.embed_color,
                           title='FIRST® Robotics Competition Team {}'.format(team_num),
@@ -96,10 +95,9 @@ class TBA(Cog):
             await ctx.send(f"This team is not registered for any events in {year}!")
             return
 
-        e = discord.Embed(color=self.embed_color)
-
-        e.add_field(name=f"Registered events for FRC Team {team_num} in {year}:",
-                    value="\n".join(i.name for i in events))
+        e = discord.Embed(color=self.embed_color,
+                          title=f"Registered events for FRC Team {team_num} in {year}:",
+                          description="\n".join(i.name for i in events))
         await ctx.send(embed=e)
 
     eventsfor.example_usage = """
@@ -168,7 +166,7 @@ class TBA(Cog):
             raise BadArgument("Couldn't find data for team {}".format(team_num))
 
     media.example_usage = """
-    `{prefix}`tba media 971 2016` - show available media from team 971 Spartan Robotics in 2016
+    `{prefix}tba media 971 2016` - show available media from team 971 Spartan Robotics in 2016
     """
 
     @tba.command()
@@ -201,7 +199,7 @@ class TBA(Cog):
                            if year is not None else "This team hasn't won any awards...yet.")
 
     awards.example_usage = """
-    `{prefix}`tba awards 1114` - list all the awards team 1114 Simbotics has ever gotten.
+    `{prefix}tba awards 1114` - list all the awards team 1114 Simbotics has ever gotten.
     """
 
     @tba.command()
@@ -259,11 +257,12 @@ class TBA(Cog):
             units = 'u'
         e = discord.Embed(title=f"Current weather for {team_program.upper()} Team {team_num}:")
         e.set_image(url="https://wttr.in/" + urlquote(f"{td.city}+{td.state_prov}+{td.country}_0_{units}.png"))
-        e.set_footer(text="Powered by wttr.in and sometimes TBA")
+        e.set_footer(text="Powered by wttr.in and " + ("TBA" if team_program.lower() == "frc" else "TOA"))
         await ctx.send(embed=e)
 
     weather.example_usage = """
     `{prefix}timezone frc 3572` - show the current weather for FRC team 3132, Thunder Down Under
+    `{prefix}timezone ftc 7548` - show the current weather for FTC team 7548, Spare Parts
     """
 
     @command()
@@ -277,6 +276,8 @@ class TBA(Cog):
                 team_data = await self.session.team(team_num)
             except aiotba.http.AioTBAError:
                 raise BadArgument('Team {} does not exist.'.format(team_num))
+            if team_data.city is None:
+                raise BadArgument("team {} exists, but does not have sufficient information!".format(team_num))
         elif team_program.lower() == "ftc":
             team_data_dict = await self.bot.cogs["TOA"].get_teamdata(team_num)
             if not team_data_dict:
@@ -288,7 +289,7 @@ class TBA(Cog):
 
         location = '{0.city}, {0.state_prov} {0.country}'.format(team_data)
         gmaps = googlemaps.Client(key=self.gmaps_key)
-        geolocator = Nominatim(user_agent="FIRST Dozer-compatible Discord Bot")
+        geolocator = Nominatim(user_agent="Dozer-compatible Discord Bot")
         geolocation = geolocator.geocode(location)
 
         if self.gmaps_key and not self.bot.config['tz_url']:
@@ -312,7 +313,8 @@ class TBA(Cog):
                        current_time.strftime("Current Time: %I:%M:%S %p (%H:%M:%S)"))
 
     timezone.example_usage = """
-    `{prefix}timezone frc 3572` - show the local time of FRC team 3572, Wavelength
+    `{prefix}timezone frc 5052` - show the local time of FRC team 5052, The RoboLobos
+    `{prefix}timezone ftc 15470` - show the local time of FTC team 15470
     """
 
 
