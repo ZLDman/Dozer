@@ -109,6 +109,7 @@ class Teams(Cog):
     `{prefix}onteam top` - List the 10 teams with the most members in this guild
     """
 
+    @Cog.listener()
     async def on_member_join(self, member):
         """Adds a user's team association to their name when they join (if exactly 1 association)"""
         if member:  # pylint friendly NOP

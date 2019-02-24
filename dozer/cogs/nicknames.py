@@ -26,6 +26,7 @@ class Nicknames(Cog):
     `{prefix}savenick False` - disables saving nicknames upon server leave.
     """
 
+    @Cog.listener()
     async def on_member_join(self, member):
         """Handles adding the nickname back on server join."""
         with db.Session() as session:
@@ -34,6 +35,7 @@ class Nicknames(Cog):
                 return
             await member.edit(nick=nick.nickname)
 
+    @Cog.listener()
     async def on_member_remove(self, member):
         """Handles saving the nickname on server leave."""
         with db.Session() as session:

@@ -25,7 +25,7 @@ class Development(Cog):
         for attr in ('line_print',):
             self.eval_globals[attr] = getattr(self, attr)
 
-    def __local_check(self, ctx):  # All of this cog is only available to devs
+    def cog_check(self, ctx):  # All of this cog is only available to devs
         if ctx.author.id not in ctx.bot.config['developers']:
             raise NotOwner('you are not a developer!')
         return True

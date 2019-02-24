@@ -14,6 +14,7 @@ class General(Cog):
         super().__init__(bot)
         self.name = 'Dozer'
 
+    @Cog.listener()
     async def on_ready(self):
         """Queries the name of the bot on connection to Discord"""
         self.name = (await self.bot.application_info()).name

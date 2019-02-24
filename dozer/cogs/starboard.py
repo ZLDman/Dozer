@@ -72,6 +72,7 @@ class Starboard(Cog):
                 msg_ent = StarboardMessage(message_id=msg.id, starboard_message_id=starboard_msg.id, reaction_count=reaction_count)
                 session.add(msg_ent)
 
+    @Cog.listener()
     async def on_reaction_add(self, reaction, member):
         """Handles core reaction logic."""
         msg = reaction.message

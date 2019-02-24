@@ -1,5 +1,6 @@
 """A series of commands that talk to The Blue Alliance."""
 import datetime
+import io
 import itertools
 
 from pprint import pformat
@@ -255,14 +256,21 @@ class TBA(Cog):
         if td.country == "USA":
             td.country = "United States of America"
             units = 'u'
-        e = discord.Embed(title=f"Current weather for {team_program.upper()} Team {team_num}:")
-        e.set_image(url="https://wttr.in/" + urlquote(f"{td.city}+{td.state_prov}+{td.country}_0_{units}.png"))
+
+        url = "https://wttr.in/" + urlquote(f"{td.city}+{td.state_prov}+{td.country}_0_{units}.png")
+
+        async with ctx.typing(), ctx.bot.http.session.get(url) as resp:
+            image_data = io.BytesIO(await resp.read())
+
+        file_name = f"weather_{team_program.lower()}{team_num}.png"
+        e = discord.Embed(title=f"Current weather for {team_program.upper()} Team {team_num}:", url=url)
+        e.set_image(url=f"attachment://{file_name}")
         e.set_footer(text="Powered by wttr.in and " + ("TBA" if team_program.lower() == "frc" else "TOA"))
-        await ctx.send(embed=e)
+        await ctx.send(embed=e, file=discord.File(image_data, file_name))
 
     weather.example_usage = """
-    `{prefix}timezone frc 3572` - show the current weather for FRC team 3132, Thunder Down Under
-    `{prefix}timezone ftc 7548` - show the current weather for FTC team 7548, Spare Parts
+    `{prefix}timezone 1619 frc` - show the current weather for FRC team 1619, Up-A-Creek Robotics
+    `{prefix}timezone 11260 ftc` - show the current weather for FTC team 11260, Up-A-Creek Robotics
     """
 
     @command()

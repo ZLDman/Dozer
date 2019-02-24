@@ -675,6 +675,7 @@ class NameGame(Cog):
         if game.pings_enabled:
             await ctx.send(msg)
 
+    @Cog.listener()
     async def on_reaction_add(self, reaction, user):
         """When reactions are added, trigger the voting handler"""
         if reaction.message.channel.id not in self.games:
@@ -711,6 +712,7 @@ class NameGame(Cog):
                     await self.skip_player(ctx, game, game.current_player)
                     game.vote_time = -1
 
+    @Cog.listener()
     async def on_reaction_remove(self, reaction, user):
         """When a reaction is removed, do vote handling"""
         if reaction.message.channel.id not in self.games:
