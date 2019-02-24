@@ -257,7 +257,7 @@ class TBA(Cog):
             td.country = "United States of America"
             units = 'u'
 
-        url = "https://wttr.in/" + urlquote(f"{td.city}+{td.state_prov}+{td.country}_0_{units}.png")
+        url = "https://wttr.in/" + urlquote(f"{td.city}, {td.state_prov}, {td.country}_0_{units}.png")
 
         async with ctx.typing(), ctx.bot.http_session.get(url) as resp:
             image_data = io.BytesIO(await resp.read())
