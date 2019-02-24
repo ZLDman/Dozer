@@ -259,7 +259,7 @@ class TBA(Cog):
 
         url = "https://wttr.in/" + urlquote(f"{td.city}+{td.state_prov}+{td.country}_0_{units}.png")
 
-        async with ctx.typing(), ctx.bot.http.session.get(url) as resp:
+        async with ctx.typing(), ctx.bot.http_session.get(url) as resp:
             image_data = io.BytesIO(await resp.read())
 
         file_name = f"weather_{team_program.lower()}{team_num}.png"
@@ -269,8 +269,8 @@ class TBA(Cog):
         await ctx.send(embed=e, file=discord.File(image_data, file_name))
 
     weather.example_usage = """
-    `{prefix}timezone 1619 frc` - show the current weather for FRC team 1619, Up-A-Creek Robotics
-    `{prefix}timezone 11260 ftc` - show the current weather for FTC team 11260, Up-A-Creek Robotics
+    `{prefix}timezone frc 1619` - show the current weather for FRC team 1619, Up-A-Creek Robotics
+    `{prefix}timezone ftc 11260` - show the current weather for FTC team 11260, Up-A-Creek Robotics
     """
 
     @command()
