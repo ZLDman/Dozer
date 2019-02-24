@@ -28,6 +28,10 @@ if discord.version_info.major < 1:
                        discord.version_info.minor,
                        discord.version_info.micro)
     sys.exit(1)
+elif not hasattr(commands, "Cog"):
+    dozer_logger.error("Your installed discord.py rewrite version is too "
+                       "old and lacks discord.ext.commands.Cog, please reinstall it and try again.")
+    sys.exit(1)
 
 
 class InvalidContext(commands.CheckFailure):

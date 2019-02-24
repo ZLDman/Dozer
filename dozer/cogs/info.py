@@ -137,6 +137,7 @@ class Info(Cog):
     `{prefix}afk robot building` - set yourself to AFK for reason "reason"
     """
 
+    @Cog.listener()
     async def on_message(self, message):
         """Primarily handles AFK"""
         ctx = await self.bot.get_context(message)

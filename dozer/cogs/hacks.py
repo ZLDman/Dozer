@@ -15,6 +15,7 @@ VERIFY_CHANNEL_ID = 333612583409942530
 JOINED_LOGS_ID = 350482751335432202
 class Hacks(Cog):
 
+    @Cog.listener()
     async def on_member_join(self, member):
         if member.guild.id == FTC_DISCORD_ID:
             try:
@@ -28,7 +29,8 @@ class Hacks(Cog):
         res += "```"
         await logs.send(res)
 
-                
+
+    @Cog.listener()
     async def on_message(self, message):
         member = message.author
         if message.channel.id == VERIFY_CHANNEL_ID and message.content.lower().startswith("i have read the rules and regulations"):
@@ -43,6 +45,7 @@ _Please set your nickname with `%nick NAME - TEAM#` in #bot-spam to reflect your
             #await message.add_reaction("🐢")
             #await message.delete()
 
+    @Cog.listener()
     async def on_message_edit(self, before, after):
         message = after
         if message.guild and message.guild.id == FTC_DISCORD_ID and "🐢" in message.content and message.author.id != self.bot.user.id:
@@ -53,7 +56,8 @@ _Please set your nickname with `%nick NAME - TEAM#` in #bot-spam to reflect your
     async def clear_reactions(self, reaction):
         async for user in reaction.users():
             await reaction.message.remove_reaction(reaction, user)
-    
+
+    @Cog.listener()
     async def on_reaction_add(self, reaction, user):
         #return
         message = reaction.message

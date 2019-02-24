@@ -40,7 +40,7 @@ with open('config.json', 'w') as f:
     json.dump(config, f, indent='\t')
 
 if 'discord_token' not in config:
-    sys.exit('Discord token must be supplied in configuration')
+    sys.exit('Discord token must be supplied in configuration - please add one to config.json')
 
 if sys.version_info < (3, 6):
     sys.exit('Dozer requires Python 3.6 or higher to run. This is version %s.' % '.'.join(sys.version_info[:3]))
