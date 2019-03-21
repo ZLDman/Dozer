@@ -40,6 +40,14 @@ class TOA(Cog):
     @staticmethod
     def convert_season(season_key):
         """converts season names to start years"""
+        try:
+            if season_key.startswith("year"):
+                return int(season_key[4:])
+            else:
+                return 1999 + int(season_key) % 100
+        except ValueError:
+            pass
+
         return {
             "quadquandary": 2007,
             "faceoff": 2008,
@@ -108,6 +116,36 @@ class TOA(Cog):
     """
 
     @toa.command()
+    @bot_has_permissions()
+    async def disclaimer(self, ctx):
+        """
+        Display a TOS compliance disclaimer for TOA commands.
+        """
+        p = ctx.prefix
+        e = discord.Embed(color=embed_color, title="TOA Data TOS Compliance Disclaimer")
+        e.description = f"The data returned by most `{p}toa` subcommands is in fact downloaded from __The " \
+            f"Orange Alliance.__"
+        e.add_field(name='However...', value="Under certain configurations of this Dozer-like, " +
+                    f"`{p}toa team` may return data that is pulled from " +
+                    "a mirror of FIRST's registration data, updated biweekly.", inline=False)
+        why = """
+Using data that is sourced **_directly from FIRST's servers_** has some benefits.
+It allows such a Dozer-like to ensure that it's returned data is both **accurate and up to date.**
+
+""" + "TOA often does not pick up on the registration of new teams for months, and for at least a period of time, " \
+        "would return **incorrect data** on older teams."
+        e.add_field(name='Why?', value=why, inline=False)
+
+        addn = """TOA will not (and likely never) return registration data for previous seasons,
+~~at least intentionally~~. There is often historical and archival values to this, so FIRST data
+is used to suppliment the `season` argument of the `team` command, to allow users to look at past names
+and locations of teams who may have moved around or renamed over the years. """.replace("\n", " ")
+        e.add_field(name="Additionally,", value=addn, inline=False)
+        e.add_field(name="This is all intended to improve user experiences!",
+                    value="And to represent teams accurately!", inline=False)
+        await ctx.send('', embed=e)
+
+    @toa.command()
     @bot_has_permissions(embed_links=True)
     async def team(self, ctx, team_num: int, season: str = None):
         """Get information on an FTC team by number."""
@@ -145,11 +183,14 @@ class TOA(Cog):
         if season_data["motto"].strip():
             e.add_field(name='Motto', value=season_data['motto'])
         # e.add_field(name='Team Info Page', value=f'https://www.theorangealliance.org/teams/{team_num}')
-        e.set_footer(text='Triggered by ' + ctx.author.display_name)
+        e.set_footer(text=f'May contain data from FIRST with TOA data. For more information, see '
+                          f'{ctx.prefix}toa disclaimer')
         await ctx.send('', embed=e)
 
     team.example_usage = """
     `{prefix}toa team 11115` - show information on team 11115, Gluten Free
+    `{prefix}toa team 7486` - show information on team 7486, Suffern Robotics
+    `{prefix}toa team 7486 1516` - show information on team 7486, Team Erebor, in Res-Q
     """
 
     @toa.command()
