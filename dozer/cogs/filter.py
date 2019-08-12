@@ -9,6 +9,8 @@ from discord.ext.commands import guild_only, has_permissions
 from ._utils import *
 from .. import db
 
+filter_deprecated = "**Adding new filters has been disabled for security reasons, " \
+             "please use another bot for this functionality.**"
 
 class Filter(Cog):
     """The filters need to be compiled each time they're run, but we don't want to compile every filter
@@ -95,12 +97,12 @@ class Filter(Cog):
         """List and manage filtered words"""
         with db.Session() as session:
             results = session.query(WordFilter).filter_by(guild_id=ctx.guild.id, enabled=True).all()
+
         if not results:
             embed = discord.Embed(title="Filters for {}".format(ctx.guild.name))
-            embed.description = "No filters found for this guild! Add one using `{}filter add <regex> [name]`".format(
-                ctx.bot.command_prefix)
+            embed.description = "No filters found for this guild!"
             embed.color = discord.Color.red()
-            await ctx.send(embed=embed)
+            await ctx.send(filter_deprecated, embed=embed)
             return
 
         fmt = 'ID {0.id}: `{0.friendly_name}`'
@@ -127,6 +129,11 @@ class Filter(Cog):
     @filter.command()
     async def add(self, ctx, pattern, friendly_name=None):
         """Add a pattern to the filter using RegEx. Any word can be added and is tested case-insensitive."""
+
+        await ctx.send(filter_deprecated)
+        if self:
+            return
+
         try:
             re.compile(pattern)
         except re.error as err:
@@ -149,6 +156,9 @@ class Filter(Cog):
     @filter.command()
     async def edit(self, ctx, filter_id, pattern):
         """Edit an already existing filter using a new pattern. A filter's friendly name cannot be edited."""
+        await ctx.send(filter_deprecated)
+        if self:
+            return
         try:
             re.compile(pattern)
         except re.error as err:
@@ -201,6 +211,8 @@ class Filter(Cog):
     @filter.command(name="dm")
     async def dm_config(self, ctx, config: bool):
         """Set whether filter words should be DMed when used in bot messages"""
+        await ctx.send(filter_deprecated)
+
         config = str(int(config)) # turns into "1" or "0" idk man
         with db.Session() as session:
             result = session.query(WordFilterSetting).filter_by(guild_id=ctx.guild.id, setting_type="dm") \
@@ -222,6 +234,7 @@ class Filter(Cog):
     @filter.group(invoke_without_command=True)
     async def whitelist(self, ctx):
         """List all whitelisted roles for this server"""
+        await ctx.send(filter_deprecated)
         results = self.word_filter_role_whitelist.query_all(guild_id=ctx.guild.id)
         role_objects = (ctx.guild.get_role(db_role.role_id) for db_role in results)
         role_names = (role.name for role in role_objects if role is not None)
@@ -239,6 +252,9 @@ class Filter(Cog):
     @whitelist.command(name="add")
     async def whitelist_add(self, ctx, *, role: discord.Role):
         """Add a role to the whitelist"""
+        await ctx.send(filter_deprecated)
+        if self:
+            return
         with db.Session() as session:
             result = session.query(WordFilterRoleWhitelist).filter_by(role_id=role.id).one_or_none()
             if result is not None:
@@ -256,6 +272,7 @@ class Filter(Cog):
     @whitelist.command(name="remove")
     async def whitelist_remove(self, ctx, *, role: discord.Role):
         """Remove a role from the whitelist"""
+        await ctx.send(filter_deprecated)
         with db.Session() as session:
             result = session.query(WordFilterRoleWhitelist).filter_by(role_id=role.id).one_or_none()
             if result is None:
