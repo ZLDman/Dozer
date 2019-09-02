@@ -5,6 +5,7 @@ import re
 import sys
 import traceback
 import discord
+import aiohttp
 from discord.ext import commands
 
 from . import utils
@@ -64,7 +65,7 @@ class Dozer(commands.Bot):
         self.logger = dozer_logger
         self._restarting = False
         self.check(self.global_checks)
-        self.http_session = self.http._session
+        self.http_session = aiohttp.ClientSession(loop=self.loop)
         if 'log_level' in config:
             dozer_log_handler.setLevel(config['log_level'])
 
