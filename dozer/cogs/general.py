@@ -72,8 +72,8 @@ class General(Cog):
                              color=discord.Color.blue())
         info.set_thumbnail(url=self.bot.user.avatar_url)
         info.add_field(name='About',
-                       value=f"{self.name}: A collaborative bot for the FTC Discord server, developed by the FRC "
-                             "Discord Server Development Team and @guineawheek#5381")
+                       value=f"{self.name}: A collaborative bot for the FIRST Discord community, developed by the FRC "
+                             "Discord Server Development Team and @guineawheek#9117")
         info.add_field(name='About `{}{}`'.format(ctx.prefix, ctx.invoked_with), value=inspect.cleandoc("""
         This command can show info for all commands, a specific command, or a category of commands.
         Use `{0}{1} {1}` for more information.
@@ -81,17 +81,17 @@ class General(Cog):
         info.add_field(name='Differences from Upstream Dozer', value="[These are documented in detail here]"
                                                                      "(https://github.com/guineawheek/Dozer/blob/development/EXTRA_FEATURES.md)")
         info.add_field(name='Support',
-                       value="Join our development server at https://discord.gg/ZAmpQPD or ping @guineawheek#5381 for "
+                       value="Join our development server at https://discord.gg/ZAmpQPD or ping @guineawheek#9117 for "
                              "support, to help with development, or if you have any questions or comments!")
         info.add_field(name="Open Source",
                        value=f"{self.name} is open source! Feel free to view and contribute to our Python code "
-                             "[on Github](https://github.com/guineawheek/FTC-Server-Dozer)")
+                             "[on Github](https://github.com/guineawheek/Dozer)")
         info.set_footer(text=f'{self.name} Help | all commands | Info page')
         await self._show_help(ctx, info, f'{self.name}: Commands', '', 'all commands', ctx.bot.commands)
 
     async def _help_command(self, ctx, command):
         """Gets the help message for one command."""
-        info = discord.Embed(title='Command: {}{}'.format(ctx.prefix, command.signature), description=command.help or (
+        info = discord.Embed(title='Command: {}{} {}'.format(ctx.prefix, "|".join([command.name] + command.aliases), command.signature), description=command.help or (
             None if command.example_usage else 'No information provided.'), color=discord.Color.blue())
         usage = command.example_usage
         if usage is not None:
@@ -127,7 +127,8 @@ class General(Cog):
                             ctx, command)
                     else:
                         embed_value = 'No information provided.'
-                    page.add_field(name=ctx.prefix + command.signature, value=embed_value, inline=False)
+                    cmd_names = "|".join([command.name] + command.aliases) + " "
+                    page.add_field(name=ctx.prefix + cmd_names + command.signature, value=embed_value, inline=False)
                 page.set_footer(text=footer.format(**format_args))
                 pages.append(page)
 
@@ -177,8 +178,8 @@ class General(Cog):
         perms = 0
         for cmd in ctx.bot.walk_commands():
             perms |= cmd.required_permissions.value
-        await ctx.send("This bot is not available to be added to other servers. To invite a bot similar to this one to"
-                       "your server, try [Plowie](https://discordapp.com/oauth2/authorize?client_id=474456308813266945"
+        await ctx.send("Here's an invite link for the public version of this bot, "
+                       "[Plowie](https://discordapp.com/oauth2/authorize?client_id=474456308813266945"
                        "&scope=bot&permissions=268525655)")
         #await ctx.send('<{}>'.format(discord.utils.oauth_url(ctx.me.id, discord.Permissions(perms))))
     invite.example_usage = """
