@@ -61,7 +61,7 @@ class Starboard(Cog):
             if msg_ent:
                 msg_ent.reaction_count = reaction_count
                 try:
-                    starboard_msg = await starboard_channel.get_message(msg_ent.starboard_message_id)
+                    starboard_msg = await starboard_channel.fetch_message(msg_ent.starboard_message_id)
                 except discord.NotFound:
                     return
                 prev_embed = starboard_msg.embeds[0]
@@ -164,7 +164,7 @@ class Starboard(Cog):
                 await ctx.send("This server does not have a starboard configured!")
                 return
         try:
-            msg = await channel.get_message(message_id)
+            msg = await channel.fetch_message(message_id)
             await self.send_to_starboard(config, msg)
         except discord.NotFound:
             await ctx.send(f"Message ID {message_id} was not found in {channel.mention}!")
