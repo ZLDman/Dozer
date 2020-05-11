@@ -320,7 +320,7 @@ class NameGame(Cog):
                 return
             record.wins = wins
             if type(user) == int:
-                await ctx.send(f"<@!{user}>'s wins now set to : **{wins}**}")
+                await ctx.send(f"<@!{user}>'s wins now set to : **{wins}**")
             else:
                 await ctx.send(f"{user.display_name}'s wins now set to: **{wins}**")
 
