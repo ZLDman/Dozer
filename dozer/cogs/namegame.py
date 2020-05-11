@@ -608,7 +608,11 @@ class NameGame(Cog):
                                  key=lambda i: i.wins, reverse=True)[:10]
             embed = discord.Embed(color=discord.Color.gold(), title=f"{mode.upper()} Name Game Leaderboard")
             for idx, entry in enumerate(leaderboard, 1):
-                embed.add_field(name=f"#{idx}: <@!{entry.user_id}>", value=entry.wins)
+                user = ctx.bot.get_user(entry.user_id)
+                if user is None:
+                    embed.add_field(name=f"#{idx}: {entry.user_id}", value=entry.wins)
+                else:
+                    embed.add_field(name=f"#{idx}: {user.display_name}", value=entry.wins)
 
             await ctx.send(embed=embed)
 
