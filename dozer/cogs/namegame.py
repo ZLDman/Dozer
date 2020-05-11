@@ -3,6 +3,7 @@ import asyncio
 import gzip
 import pickle
 import traceback
+import typing
 from collections import OrderedDict
 from functools import wraps
 
@@ -301,19 +302,27 @@ class NameGame(Cog):
 
     @config.command()
     @has_permissions(manage_guild=True)
-    async def leaderboardedit(self, ctx, mode: str, user: discord.User, wins: int):
+    async def leaderboardedit(self, ctx, mode: str, user: typing.Union[discord.User, int], wins: int):
         """Edits the leaderboard"""
+
+        if type(user) == int:
+            uid = user
+        else:
+            uid = user.id
         if mode not in SUPPORTED_MODES:
             await ctx.send(
                 f"Game mode `{mode}` not supported! Please pick a mode that is one of: `{', '.join(SUPPORTED_MODES)}`")
             return
         with db.Session() as session:
-            record = session.query(NameGameLeaderboard).filter_by(game_mode=mode, user_id=user.id).one_or_none()
+            record = session.query(NameGameLeaderboard).filter_by(game_mode=mode, user_id=uid).one_or_none()
             if record is None:
                 await ctx.send("User not on leaderboard!")
                 return
             record.wins = wins
-            await ctx.send(f"{user.display_name}'s wins now set to: **{wins}**")
+            if type(user) == int:
+                await ctx.send(f"<@!{user}>'s wins now set to : **{wins}**}")
+            else:
+                await ctx.send(f"{user.display_name}'s wins now set to: **{wins}**")
 
     @config.command()
     @has_permissions(manage_guild=True)
@@ -599,7 +608,8 @@ class NameGame(Cog):
                                  key=lambda i: i.wins, reverse=True)[:10]
             embed = discord.Embed(color=discord.Color.gold(), title=f"{mode.upper()} Name Game Leaderboard")
             for idx, entry in enumerate(leaderboard, 1):
-                embed.add_field(name=f"#{idx}: {ctx.bot.get_user(entry.user_id).display_name}", value=entry.wins)
+                embed.add_field(name=f"#{idx}: <@!{entry.user_id}>", value=entry.wins)
+
             await ctx.send(embed=embed)
 
     leaderboard.example_usage = """
