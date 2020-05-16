@@ -620,6 +620,44 @@ class NameGame(Cog):
     `{prefix}ng leaderboard ftc` - display the namegame winning leaderboards for FTC.
     """
 
+    @ng.command()
+    async def teamstats(self, ctx, team: int = None, mode: str = None):
+        if mode is None:
+            with db.Session() as session:
+                config = session.query(NameGameConfig).filter_by(guild_id=ctx.guild.id).one_or_none()
+            mode = SUPPORTED_MODES[0] if config is None else config.mode
+        if mode not in SUPPORTED_MODES:
+            await ctx.send(
+                f"Game mode `{mode}` not supported! Please pick a mode that is one of: `{', '.join(SUPPORTED_MODES)}`")
+            return
+        if team is None:
+            with db.Session() as session:
+                leaderboard = sorted(session.query(NameGameTeamStats).filter_by(game_mode=mode).all(), 
+                                     key=lambda i: i.wins, reverse=True)[:10]
+                embed = discord.Embed(color=discord.Color.gold(), title=f"{mode.upper()} Name Game Team Usage Leaderboard")
+                for idx, entry in enumerate(leaderboard, 1):
+                    # TODO: add name field to team
+                    embed.add_field(name=f"#{idx}: {entry.team_id}", value=entry.uses)
+            await ctx.send(embed=embed)
+        else:
+            with db.Session() as session:
+                entry = session.query(NameGameTeamStats).filter_by(game_mode=mode, team_id=team).one_or_none()
+                if entry is None:
+                    await ctx.send(f"Sadly, it appears nobody has picked `{team}` in a game yet. Maybe you can be the first?")
+                else:
+                    ret = f"`{team}` has been used in name games **{entry.uses}** time(s)."
+                    if (str(team)[0] == '2' or str(team)[-1] == '2') and entry.uses > 10:
+                        ret += "\nMaybe it has something to do with the 2..."
+                    if mode.lower() == 'ftc':
+                        ret += "\n" + {
+                                1: "Unlimited potential, I'm telling you.",
+                                9421: "Hey, isn't that Ilan's team? I don't remember their name.",
+                                9656: "Hey, isn't that Justin's team? I don't remember their name either.",
+                                16236: "It's the funny juice team.",
+                                }.get(team, "")
+                    await ctx.send(ret)
+
+
     async def strike(self, ctx, game, player):
         """Gives a player a strike."""
         if game.strike(player):
@@ -649,6 +687,15 @@ class NameGame(Cog):
             game.running = False
 
         if not game.running:
+            with db.Session() as session:
+                for team in game.picked:
+                    stats = session.query(NameGameTeamStats).filter_by(team_id=team, game_mode=game.mode).one_or_none()
+                    if stats is None:
+                        stats = NameGameTeamStats(team_id=team, game_mode=game.mode, uses=1)
+                        session.add(stats)
+                    else:
+                        stats.uses += 1
+                    
             self.games.pop(ctx.channel.id)
 
     async def display_info(self, ctx, game):
@@ -688,6 +735,8 @@ class NameGame(Cog):
         """Notifies people in the channel when it's their turn."""
         if game.pings_enabled:
             await ctx.send(msg)
+
+
 
     @Cog.listener()
     async def on_reaction_add(self, reaction, user):
@@ -805,6 +854,13 @@ class NameGameLeaderboard(db.DatabaseObject):
     wins = db.Column(db.BigInteger)
     game_mode = db.Column(db.String)
 
+class NameGameTeamStats(db.DatabaseObject):
+    """interesting team frequency stats"""
+    __tablename__ = "namegame_teamstats"
+    team_id = db.Column(db.BigInteger, primary_key=True)
+    game_mode = db.Column(db.String, primary_key=True)
+    team_nickname = db.Column(db.String, nullable=True) 
+    uses = db.Column(db.BigInteger)
 
 def setup(bot):
     """Adds the namegame cog to the bot"""
