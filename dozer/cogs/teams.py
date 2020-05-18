@@ -20,6 +20,10 @@ class Teams(Cog):
         if z not in ("fll", "ftc", 'frc', 'vrc', 'vex', 'vexu'):
             raise BadArgument("Unrecognized team type " + team_type[:32])
 
+        if z in ("fll", "ftc", 'frc'):
+            if not team_number.isdigit():
+                raise BadArgument("FIRST team numbers must be numeric!")
+
         if z == 'vexu':
             if len(team_number) > 6:
                 raise BadArgument("Invalid VexU team number specified!")
