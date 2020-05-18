@@ -7,6 +7,7 @@ import asyncio
 import uvloop
 from .db import db_init
 from . import db
+from .asyncdb.orm import orm
 
 # switch to uvloop for event loops
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -53,6 +54,9 @@ for ext in os.listdir('dozer/cogs'):
     if not ext.startswith(('_', '.')):
         bot.load_extension('dozer.cogs.' + ext[:-3])  # Remove '.py'
 
+loop = asyncio.get_event_loop()
+loop.run_until_complete(orm.connect(dsn=config['db_url']))
+loop.run_until_complete(orm.Model.create_all_tables())
 db.DatabaseObject.metadata.create_all()
 bot.run()
 

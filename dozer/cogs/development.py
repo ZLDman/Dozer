@@ -7,6 +7,7 @@ import discord
 from discord.ext.commands import NotOwner
 
 from ._utils import *
+from ..asyncdb.orm import orm
 
 logger = logging.getLogger("dozer")
 
@@ -54,8 +55,9 @@ class Development(Cog):
         """Reloads a cog."""
         extension = 'dozer.cogs.' + cog
         msg = await ctx.send('Reloading extension %s' % extension)
-        self.bot.unload_extension(extension)
-        self.bot.load_extension(extension)
+        self.bot.reload_extension(extension)
+        # needs to be run otherwise cog tables won't have necessary runtime attrs
+        await orm.Model.create_all_tables()
         await msg.edit(content='Reloaded extension %s' % extension)
 
     reload.example_usage = """

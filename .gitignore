@@ -7,6 +7,7 @@ cilog.txt
 
 # IDEA
 .idea/
+.vscode/
 
 # for vim
 [._]*.s[a-v][a-z]
