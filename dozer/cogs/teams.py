@@ -8,20 +8,34 @@ from ._utils import *
 from ..asyncdb.orm import orm
 from ..asyncdb import psqlt
 
+# alter table team_numbers alter column team_number type text
 class Teams(Cog):
     """Commands for making and seeing robotics team associations."""
 
     @classmethod
-    def validate(cls, team_type):
+    def validate(cls, team_type, team_number):
+        if not team_number.isalnum() or not team_number.isascii():
+            raise BadArgument("Team numbers must be alphanumeric!")
         z = team_type.casefold()
-        if z not in ("fll", "ftc", 'frc'):
+        if z not in ("fll", "ftc", 'frc', 'vrc', 'vex', 'vexu'):
             raise BadArgument("Unrecognized team type " + team_type[:32])
-        return z
+
+        if z == 'vexu':
+            if len(team_number) > 6:
+                raise BadArgument("Invalid VexU team number specified!")
+        
+        if z == 'vex':
+            z = 'vrc'
+        if z == 'vrc':
+            if not (len(team_number) <= 2 and team_number[:-1].isdigit() and team_number[1].isalpha()):
+                raise BadArgument("Invalid Vex team number specified!")
+
+        return z, team_number.upper()
 
     @command()
-    async def setteam(self, ctx, team_type, team_number: int):
+    async def setteam(self, ctx, team_type, team_number):
         """Sets an association with your team in the database."""
-        team_type = self.validate(team_type)
+        team_type, team_number = self.validate(team_type, team_number)
 
         dbcheck = await TeamNumbers.select_one(user_id=ctx.author.id, team_number=team_number, team_type=team_type)
         if dbcheck is None:
@@ -39,7 +53,7 @@ class Teams(Cog):
     @command()
     async def removeteam(self, ctx, team_type, team_number):
         """Removes an association with a team in the database."""
-        team_type = self.validate(team_type)
+        team_type, team_number = self.validate(team_type, team_number)
         results = await TeamNumbers.select_one(user_id=ctx.author.id, team_number=team_number, team_type=team_type)
         if results is not None:
             await results.delete()
@@ -75,9 +89,9 @@ class Teams(Cog):
 
     @group(invoke_without_command=True)
     @guild_only()
-    async def onteam(self, ctx, team_type, team_number: int):
+    async def onteam(self, ctx, team_type, team_number):
         """Allows you to see who has associated themselves with a particular team."""
-        team_type = self.validate(team_type)
+        team_type, team_number = self.validate(team_type, team_number)
         users = await TeamNumbers.select(team_number=team_number, team_type=team_type)
         if not users:
             await ctx.send("Nobody on that team found!")
@@ -111,11 +125,6 @@ class Teams(Cog):
         async with orm.acquire() as conn:
             counts = await conn.fetch(query, [member.id for member in ctx.guild.members])
 
-        #with db.Session() as session:
-        #    team_keys = session.query(TeamNumbers.team_type, TeamNumbers.team_number) \
-        #        .filter(TeamNumbers.user_id.in_({member.id for member in ctx.guild.members})).all()
-
-        #counts = sorted(collections.Counter(team_keys).most_common(10), key=lambda tup: tup[0])
         embed = discord.Embed(title=f'Top teams in {ctx.guild.name}', color=discord.Color.blue())
         embed.description = '\n'.join(
             f'{ent["team_type"].upper()} team {ent["team_number"]} '
@@ -131,7 +140,7 @@ class TeamNumbers(orm.Model):
     __tablename__ = 'team_numbers'
     __primary_key__ = ("user_id", "team_number", "team_type")
     user_id: psqlt.bigint
-    team_number: psqlt.bigint
+    team_number: psqlt.text
     team_type: psqlt.text
 
 
