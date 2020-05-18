@@ -5,7 +5,6 @@ import discord
 from discord.ext.commands import has_permissions, guild_only
 
 from ._utils import *
-from .. import db
 from ..asyncdb.orm import orm
 from ..asyncdb import psqlt
 
