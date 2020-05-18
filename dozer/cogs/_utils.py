@@ -131,9 +131,7 @@ class Reactor:
                 await self.message.remove_reaction(reaction.emoji, reacting_member)
             if self._action is self._stop_reaction:
                 break
-            elif self._action is None:
-                pass
-            else:
+            if self._action is not None:
                 await self._action
         for emoji in reversed(self._reactions):
             await self.message.remove_reaction(emoji, self.me)
@@ -208,8 +206,10 @@ class Paginator(Reactor):
                 if ind == 0:
                     self.go_to_page(0)
                 elif ind == 1:
+                    # pylint: disable=not-callable
                     self.prev()
                 elif ind == 2:
+                    # pylint: disable=not-callable
                     self.next()
                 elif ind == 3:
                     self.go_to_page(-1)
@@ -269,8 +269,7 @@ def bot_has_permissions(**required):
 
         if missing:
             raise commands.BotMissingPermissions(missing)
-        else:
-            return True
+        return True
 
     def decorator(func):
         """Defines the bot_has_permissions decorator"""
