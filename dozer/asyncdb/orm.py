@@ -1,8 +1,3 @@
-import json
-import asyncpg
-
-from .psqlt import Column
-
 """
 A very, very barebones asyncpg-backed ORM.
 
@@ -17,12 +12,19 @@ That would be really, really bad.
 One can use the defualt orm instance or instantiate your own for other dbs.
 
 """
+import json
+import asyncpg
+
+from .psqlt import Column
+
 
 #pylint: disable=not-an-iterable
 class ORM:
+    """Wrapper class for everything I guess..."""
     pool: asyncpg.pool.Pool
     def __init__(self):
         class Model:
+            """Tables subclass this."""
             __schemaname__ = "public"
             __tablename__ = None
             __primary_key__ = None
@@ -40,6 +42,7 @@ class ORM:
 
             @classmethod
             async def create_all_tables(cls):
+                """Creates all the tables in Postgres and populates all subclasses with necessary runtime information."""
                 async with self.pool.acquire() as conn:
                     for scls in Model.__subclasses__():
                         columns = {}
@@ -58,7 +61,8 @@ class ORM:
                                 db_column_names = set(map(lambda r: r["column_name"], db_columns))
                                 column_names = set(columns.keys())
                                 if column_names - db_column_names:
-                                    raise TypeError(f"columns {column_names - db_column_names} are missing from the {scls.__schemaname__}.{scls.__tablename__} table!")
+                                    raise TypeError(f"columns {column_names - db_column_names} are missing from "
+                                                    f"the {scls.__schemaname__}.{scls.__tablename__} table!")
                             else:
 
                                 query_params = ", ".join(map(" ".join, zip(columns.keys(), columns.values())))
@@ -73,6 +77,7 @@ class ORM:
 
             @classmethod
             def from_record(cls, record: asyncpg.Record):
+                """Converts an asyncpg.Record into a Model object."""
                 if record is None:
                     return None
                 ret = cls()
@@ -97,21 +102,25 @@ class ORM:
 
             @classmethod
             async def fetch(cls, *args, _conn=None):
+                """Equivalent to mapping Model.from_record onto the results of asyncpg.fetch."""
                 return [cls.from_record(r) for r in await cls._fetch(args, conn=_conn)]
 
             @classmethod
             async def fetchrow(cls, *args, _conn=None):
+                """Equivalent to Model.from_record(await asyncpg.fetch(...))"""
                 return cls.from_record(await cls._fetch(args, _one=True, conn=_conn))
 
             async def insert(self, _conn=None, _upsert=""):
+                """Inserts the model into the database. Use _upsert to specify an ON CONFLICT or other clause."""
                 fields = self._columns.keys()
                 qs = f"INSERT INTO {self.__schemaname__}.{self.__tablename__}({','.join(fields)}) VALUES(" + ",".join(
-                    f"${i}" for i in range(1, len(fields) + 1)) + ")" + (" ON CONFLICT DO " + _upsert if _upsert else "")
+                    f"${i}" for i in range(1, len(fields) + 1)) + ")" + (_upsert if _upsert else "")
                 args = [qs] + [getattr(self, f) for f in fields]
                 await self.fetch(*args, _conn=_conn)
 
             @classmethod
             async def select(cls, _conn=None, _extra_sql="", **properties):
+                """Queries for Models matching the specified properties. Returns a list of matching results."""
                 if not properties:
                     return await cls.fetch(f"SELECT * FROM {cls.__schemaname__}.{cls.__tablename__}")
                 else:
@@ -122,6 +131,7 @@ class ORM:
 
             @classmethod
             async def select_one(cls, _conn=None, **properties):
+                """Queries for a single Model matching the specified properties. Similar to .one_or_none() in sqlalchemy."""
                 if not properties:
                     raise ValueError("bruh which one do i pick")
                 fields = properties.keys()
@@ -129,6 +139,9 @@ class ORM:
                 return await cls.fetchrow(*([qs] + list(properties.values())), _conn=_conn)
 
             async def update(self, _keys=None, _conn=None, **properties):
+                """Updates Models matching the specified properties in the database to the values of the Model object.
+                Typically does not require property arguments.
+                 """
                 pkeys = self.__primary_key__ or tuple()
                 if _keys is None:
                     fields = [k for k in self._columns.keys() if k not in pkeys]
@@ -148,6 +161,7 @@ class ORM:
                 return await self.fetchrow(*([qs] + [getattr(self, f) for f in fields] + list(properties.values())), _conn=_conn)
 
             async def delete(self, _conn=None, **properties):
+                """Deletes the matching Model from the database."""
                 pkeys = self.__primary_key__ or tuple()
                 if not properties:
                     if not pkeys:
@@ -160,6 +174,7 @@ class ORM:
 
             @classmethod
             async def delete_all(cls, _conn=None, **properties):
+                """Deletes all matching Models from the database."""
                 if not properties:
                     raise ValueError("delete_all() requires at least one keyword argument!")
                 qs = f"DELETE FROM {cls.__schemaname__}.{cls.__tablename__} WHERE " + " AND ".join(
@@ -199,7 +214,9 @@ class ORM:
         self.pool: asyncpg.pool.Pool
 
     async def join(self, tables, tnames, join_on, where=None, addn_sql="", params=None, use_dict=True):
-        """tables, tnames, and on are NOT injection safe!"""
+        """Performs black magic to perform a join. I don't even remember how this works anymore.
+        tables, tnames, and on are NOT injection safe!
+        """
         if len(tables) != (len(join_on) + 1) or len(tables) != len(tnames):
             raise TypeError("tables not same length as join_on") 
 
