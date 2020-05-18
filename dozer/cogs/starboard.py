@@ -6,6 +6,8 @@ from discord.ext.commands import has_permissions, guild_only
 
 from ._utils import *
 from .. import db
+from ..asyncdb.orm import orm
+from ..asyncdb import psqlt
 
 
 class Starboard(Cog):
@@ -21,23 +23,22 @@ class Starboard(Cog):
         else:
             return ""
 
-    def make_starboard_embed(self, msg: discord.Message, emoji=None, reaction_count=None):
+    def make_starboard_embed(self, msg: discord.Message): #, emoji=None, reaction_count=None):
         """Makes a starboard embed."""
         e = discord.Embed(color=discord.Color.gold())
-        e.add_field(name="Author", value=msg.author.mention)
-        e.add_field(name="Channel", value=msg.channel.mention)
-        e.add_field(name="Jump link", value=f"[here]({msg.jump_url})")
-
+        e.set_author(name=msg.author.display_name, icon_url=msg.author.avatar_url)
         if len(msg.content):
-            e.add_field(name="Content", value=msg.content[:1023])
-        if len(msg.content) > 1024:
-            e.add_field(name="Content (continued):", value=msg.content[1023:])
+            e.description = msg.content
+
+        # Open question: how do we deal with attachment posts that aren't just an image?
         if len(msg.attachments) > 1:
-            e.add_field(name="Additional attachments:", value="\n".join([a.url for a in msg.attachments[1:]]))
+            e.add_field(name="Attachments:", value="\n".join([a.url for a in msg.attachments[1:]]))
         if len(msg.attachments):
             e.set_image(url=msg.attachments[0].url)
 
-        e.set_footer(text=self.starboard_embed_footer(emoji, reaction_count) + str(msg.guild))
+        e.add_field(name="Jump link", value=f"[here]({msg.jump_url})")
+
+        e.set_footer(text=str(msg.guild)) #self.starboard_embed_footer(emoji, reaction_count) + str(msg.guild))
         e.timestamp = datetime.datetime.utcnow()
         return e
 
@@ -52,25 +53,26 @@ class Starboard(Cog):
 
     async def send_to_starboard(self, config, msg: discord.Message):
         """Sends a message to the starboard; if the message already exists in the starboard, update the reactions count"""
-        with db.Session() as session:
-            starboard_channel = msg.guild.get_channel(config.channel_id)
-            if starboard_channel is None:
+        starboard_channel = msg.guild.get_channel(config.channel_id)
+        if starboard_channel is None:
+            return
+        msg_ent = await StarboardMessage.select_one(message_id=msg.id)
+        reaction_count = ([r.count for r in msg.reactions if str(r.emoji) == config.emoji] or [0])[0]
+
+        starboard_msg_content = f"{config.emoji} **{reaction_count}** {starboard_channel.mention} {msg.author.mention}"
+        if msg_ent:
+            msg_ent.reaction_count = reaction_count
+            await msg_ent.update()
+            try:
+                starboard_msg = await starboard_channel.fetch_message(msg_ent.starboard_message_id)
+            except discord.NotFound:
                 return
-            msg_ent = session.query(StarboardMessage).filter_by(message_id=msg.id).one_or_none()
-            reaction_count = ([r.count for r in msg.reactions if str(r.emoji) == config.emoji] or [0])[0]
-            if msg_ent:
-                msg_ent.reaction_count = reaction_count
-                try:
-                    starboard_msg = await starboard_channel.get_message(msg_ent.starboard_message_id)
-                except discord.NotFound:
-                    return
-                prev_embed = starboard_msg.embeds[0]
-                prev_embed.set_footer(text=self.starboard_embed_footer(config.emoji, reaction_count) + str(msg.guild))
-                await starboard_msg.edit(embed=prev_embed)
-            else:
-                starboard_msg = await starboard_channel.send(embed=self.make_starboard_embed(msg, emoji=config.emoji, reaction_count=reaction_count))
-                msg_ent = StarboardMessage(message_id=msg.id, starboard_message_id=starboard_msg.id, reaction_count=reaction_count)
-                session.add(msg_ent)
+            prev_embed = starboard_msg.embeds[0]
+            await starboard_msg.edit(content=starboard_msg_content, embed=prev_embed)
+        else:
+            starboard_msg = await starboard_channel.send(starboard_msg_content, embed=self.make_starboard_embed(msg)) 
+            msg_ent = StarboardMessage(message_id=msg.id, starboard_message_id=starboard_msg.id, reaction_count=reaction_count)
+            await msg_ent.insert(_upsert="ON CONFLICT (message_id) DO UPDATE SET reaction_count=EXCLUDED.reaction_count")
 
     @Cog.listener()
     async def on_reaction_add(self, reaction, member):
@@ -81,24 +83,33 @@ class Starboard(Cog):
         if msg.guild.id in self.config_cache:
             config = self.config_cache[msg.guild.id]
         else:
-            with db.Session() as session:
-                config = session.query(StarboardConfig).filter_by(guild_id=msg.guild.id).one_or_none()
-                if config:
-                    self.config_cache[msg.guild.id] = config
-                else:
-                    self.config_cache[msg.guild.id] = None
-                    return
+            config = await StarboardConfig.select_one(guild_id=msg.guild.id)
+            self.config_cache[msg.guild.id] = config
 
         # we cache null results for servers
         if config is None:
             return
 
         if reaction.count >= config.threshold and str(reaction.emoji) == config.emoji and member != msg.guild.me:
+            await self.send_to_starboard(config, msg)
+        elif reaction.count < config.threshold:
+            star_ent = await StarboardMessage.select_one(message_id=msg.id)
+            if star_ent is None:
+                return
+            starboard_channel = msg.guild.get_channel(config.channel_id)
+            if starboard_channel is None:
+                return
             try:
-                await self.send_to_starboard(config, msg)
-                await msg.add_reaction(reaction.emoji)
-            except discord.DiscordException:
-                pass
+                starboard_msg = await starboard_channel.fetch_message(star_ent.starboard_message_id)
+            except discord.NotFound:
+                return
+            await starboard_msg.delete()
+            await star_ent.delete()
+
+    @Cog.listener()
+    async def on_reaction_remove(self, reaction, member):
+        """Also handles reaction logic."""
+        await self.on_reaction_add(reaction, member)
 
     @guild_only()
     @group(invoke_without_command=True)
@@ -109,12 +120,11 @@ class Starboard(Cog):
 
            To configure a starboard, use the `starboard config` subcommand.
            """
-        with db.Session() as session:
-            config = session.query(StarboardConfig).filter_by(guild_id=ctx.guild.id).one_or_none()
-            if config:
-                await ctx.send(embed=self.make_config_embed(ctx, f"Starboard configuration for {ctx.guild}", config))
-            else:
-                await ctx.send(f"This server does not have a starboard configured! See `{ctx.prefix}help starboard` for more information.")
+        config = await StarboardConfig.select_one(guild_id=ctx.guild.id)
+        if config:
+            await ctx.send(embed=self.make_config_embed(ctx, f"Starboard configuration for {ctx.guild}", config))
+        else:
+            await ctx.send(f"This server does not have a starboard configured! See `{ctx.prefix}help starboard` for more information.")
     starboard.example_usage = """
     `{prefix}starboard` - Show starboard configuration details.
     `{prefix}starboard config #hall-of-fame 🌟 5` - Set the bot to repost messages that have 5 star reactions to `#hall-of-fame`
@@ -133,15 +143,18 @@ class Starboard(Cog):
             await ctx.send(f"{ctx.author.mention}, bad argument: '{emoji}' is not an emoji!")
             return
 
-        with db.Session() as session:
-            config = session.query(StarboardConfig).filter_by(guild_id=ctx.guild.id).one_or_none()
-            if config:
-                session.delete(config)
+        config = await StarboardConfig.select_one(guild_id=ctx.guild.id)
+        if config:
+            config.channel_id = channel.id
+            config.emoji = str(emoji)
+            config.threshold = threshold
+            await config.update()
+        else:
             config = StarboardConfig(guild_id=ctx.guild.id, channel_id=channel.id, emoji=str(emoji), threshold=threshold)
-            session.add(config)
-            if ctx.guild.id in self.config_cache:
-                del self.config_cache[ctx.guild.id]
-            await ctx.send(embed=self.make_config_embed(ctx, f"Updated configuration for {ctx.guild}!", config))
+            await config.insert()
+        if ctx.guild.id in self.config_cache:
+            del self.config_cache[ctx.guild.id]
+        await ctx.send(embed=self.make_config_embed(ctx, f"Updated configuration for {ctx.guild}!", config))
     config.example_usage = """
     `{prefix}starboard config #hall-of-fame 🌟 5` - Set the bot to repost messages that have 5 star reactions to `#hall-of-fame`
     """
@@ -150,21 +163,20 @@ class Starboard(Cog):
     @bot_has_permissions(embed_links=True)
     async def add(self, ctx, channel: discord.TextChannel, message_id: int):
         """Manually adds a message to the starboard. Note that the caller must have permissions to send messages to the starboard channel."""
-        with db.Session() as session:
-            config = session.query(StarboardConfig).filter_by(guild_id=ctx.guild.id).one_or_none()
-            if config:
-                starboard_channel = ctx.guild.get_channel(config.channel_id)
-                if not starboard_channel.permissions_for(ctx.author).send_messages:
-                    await ctx.send("You don't have permissions to add messages to the starboard channel!")
-                    return
-                elif not starboard_channel.permissions_for(ctx.guild.me).send_messages:
-                    await ctx.send("I don't have permissions to add messages to the starboard channel!")
-                    return
-            else:
-                await ctx.send("This server does not have a starboard configured!")
+        config = await StarboardConfig.select_one(guild_id=ctx.guild.id)
+        if config:
+            starboard_channel = ctx.guild.get_channel(config.channel_id)
+            if not starboard_channel.permissions_for(ctx.author).send_messages:
+                await ctx.send("You don't have permissions to add messages to the starboard channel!")
                 return
+            elif not starboard_channel.permissions_for(ctx.guild.me).send_messages:
+                await ctx.send("I don't have permissions to add messages to the starboard channel!")
+                return
+        else:
+            await ctx.send("This server does not have a starboard configured!")
+            return
         try:
-            msg = await channel.get_message(message_id)
+            msg = await channel.fetch_message(message_id)
             await self.send_to_starboard(config, msg)
         except discord.NotFound:
             await ctx.send(f"Message ID {message_id} was not found in {channel.mention}!")
@@ -176,21 +188,23 @@ class Starboard(Cog):
     """
 
 
-class StarboardConfig(db.DatabaseObject):
+class StarboardConfig(orm.Model):
     """Main starboard server config data"""
     __tablename__ = "starboard_config"
-    guild_id = db.Column(db.BigInteger, primary_key=True)
-    channel_id = db.Column(db.BigInteger)
-    emoji = db.Column(db.String)
-    threshold = db.Column(db.BigInteger)
+    __primary_key__ = ("guild_id",)
+    guild_id: psqlt.bigint
+    channel_id: psqlt.bigint
+    emoji: psqlt.text
+    threshold: psqlt.bigint
 
 
-class StarboardMessage(db.DatabaseObject):
+class StarboardMessage(orm.Model):
     """Table that lists every starboard message ever"""
     __tablename__ = "starboard_messages"
-    message_id = db.Column(db.BigInteger, primary_key=True)
-    starboard_message_id = db.Column(db.BigInteger)
-    reaction_count = db.Column(db.BigInteger)
+    __primary_key__ = ("message_id",)
+    message_id: psqlt.bigint
+    starboard_message_id: psqlt.bigint
+    reaction_count: psqlt.bigint
 
 
 def setup(bot):
