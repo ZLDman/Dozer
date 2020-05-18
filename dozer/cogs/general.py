@@ -91,14 +91,16 @@ class General(Cog):
 
     async def _help_command(self, ctx, command):
         """Gets the help message for one command."""
-        info = discord.Embed(title='Command: {}{} {}'.format(ctx.prefix, "|".join([command.name] + command.aliases), command.signature), description=command.help or (
-            None if command.example_usage else 'No information provided.'), color=discord.Color.blue())
+        info = discord.Embed(title='Command: {}{} {}'.format(ctx.prefix, "|".join([command.name] + command.aliases), command.signature), 
+                             description=command.help or (None if command.example_usage else 'No information provided.'), 
+                             color=discord.Color.blue())
         usage = command.example_usage
         if usage is not None:
             info.add_field(name='Usage', value=usage.format(prefix=ctx.prefix, name=ctx.invoked_with), inline=False)
         info.set_footer(text='{} Help | {!r} command | Info'.format(self.name, command.qualified_name))
-        await self._show_help(ctx, info, 'Subcommands: {prefix}{signature}', '', '{command.qualified_name!r} command',
-                              command.commands if isinstance(command, Group) else set(), command=command, signature=command.signature)
+        await self._show_help(ctx, info, 'Subcommands: {prefix}{name} {signature}', '', '{command.qualified_name!r} command',
+                              command.commands if isinstance(command, Group) else set(), 
+                              command=command, name=command.qualified_name, signature=command.signature)
 
     async def _help_cog(self, ctx, cog):
         """Gets the help message for one cog."""
@@ -127,8 +129,12 @@ class General(Cog):
                             ctx, command)
                     else:
                         embed_value = 'No information provided.'
-                    cmd_names = "|".join([command.name] + command.aliases) + " "
-                    page.add_field(name=ctx.prefix + cmd_names + command.signature, value=embed_value, inline=False)
+                    if command.aliases:
+                        cmd_names = "|".join([command.name] + command.aliases)
+                        page.add_field(name=f"{ctx.prefix}{command.full_parent_name}[{cmd_names}] {command.signature}", value=embed_value, inline=False)
+                    else:
+                        page.add_field(name=f"{ctx.prefix}{command.qualified_name} {command.signature}", value=embed_value, inline=False)
+
                 page.set_footer(text=footer.format(**format_args))
                 pages.append(page)
 
