@@ -14,7 +14,8 @@ from fuzzywuzzy import fuzz
 
 from dozer.bot import dozer_logger
 from ._utils import *
-from .. import db
+from ..asyncdb.orm import orm
+from ..asyncdb import psqlt
 
 SUPPORTED_MODES = ["frc", "ftc"]
 
@@ -235,77 +236,78 @@ class NameGame(Cog):
     @has_permissions(manage_guild=True)
     async def defaultmode(self, ctx, mode: str = None):
         """Configuration of the default game mode (FRC, FTC, etc.)"""
-        with db.Session() as session:
-            config = session.query(NameGameConfig).filter_by(guild_id=ctx.guild.id).one_or_none()
-            if mode is None:
-                mode = SUPPORTED_MODES[0] if config is None else config.mode
-                await ctx.send(f"The current default game mode for this server is `{mode}`")
+        config = await NameGameConfig.select_one(guild_id=ctx.guild.id)
+        if mode is None:
+            mode = SUPPORTED_MODES[0] if config is None else config.mode
+            await ctx.send(f"The current default game mode for this server is `{mode}`")
+        else:
+            if mode not in SUPPORTED_MODES:
+                await ctx.send(
+                    f"Game mode `{mode}` not supported! Please pick a mode that is one of: `{', '.join(SUPPORTED_MODES)}`")
+                return
+            if config is None:
+                config = NameGameConfig(guild_id=ctx.guild.id, channel_id=None, mode=mode, pings_enabled=False)
+                await config.insert()
+                #session.add(config)
             else:
-                if mode not in SUPPORTED_MODES:
-                    await ctx.send(
-                        f"Game mode `{mode}` not supported! Please pick a mode that is one of: `{', '.join(SUPPORTED_MODES)}`")
-                    return
-                if config is None:
-                    config = NameGameConfig(guild_id=ctx.guild.id, channel_id=None, mode=mode, pings_enabled=False)
-                    session.add(config)
-                else:
-                    config.mode = mode
+                config.mode = mode
+                await config.update()
                 await ctx.send(f"Default game mode updated to `{mode}`")
 
     @config.command()
     @has_permissions(manage_guild=True)
     async def setchannel(self, ctx, channel: discord.TextChannel = None):
         """Sets the namegame channel"""
-        with db.Session() as session:
-            config = session.query(NameGameConfig).filter_by(guild_id=ctx.guild.id).one_or_none()
-            if channel is None:
-                if config is None or config.channel_id is None:
-                    await ctx.send(
-                        f"There is no currently set namegame channel.\nTo set a channel, run `{ctx.prefix}ng config "
-                        f"setchannel [channel_mention]`")
-                else:
-                    await ctx.send(
-                        f"The currently set namegame channel is {ctx.guild.get_channel(config.channel_id).mention}.\n"
-                        f"To clear this, run `{ctx.prefix}ng config clearsetchannel`")
+        config = await NameGameConfig.select_one(guild_id=ctx.guild.id)
+        if channel is None:
+            if config is None or config.channel_id is None:
+                await ctx.send(
+                    f"There is no currently set namegame channel.\nTo set a channel, run `{ctx.prefix}ng config "
+                    f"setchannel [channel_mention]`")
             else:
-                if config is None:
-                    config = NameGameConfig(guild_id=ctx.guild.id, channel_id=channel.id, mode=SUPPORTED_MODES[0],
-                                            pings_enabled=False)
-                    session.add(config)
-                else:
-                    config.channel_id = channel.id
-                await ctx.send(f"Namegame channel set to {channel.mention}!")
+                await ctx.send(
+                    f"The currently set namegame channel is {ctx.guild.get_channel(config.channel_id).mention}.\n"
+                    f"To clear this, run `{ctx.prefix}ng config clearsetchannel`")
+        else:
+            if config is None:
+                config = NameGameConfig(guild_id=ctx.guild.id, channel_id=channel.id, mode=SUPPORTED_MODES[0],
+                                        pings_enabled=False)
+                await config.insert()
+            else:
+                config.channel_id = channel.id
+                await config.update()
+            await ctx.send(f"Namegame channel set to {channel.mention}!")
 
     @config.command()
     @has_permissions(manage_guild=True)
     async def clearsetchannel(self, ctx):
         """Clears the set namegame channel"""
-        with db.Session() as session:
-            config = session.query(NameGameConfig).filter_by(guild_id=ctx.guild.id).one_or_none()
-            if config is not None:
-                config.channel_id = None
-            await ctx.send("Namegame channel cleared!")
+        config = await NameGameConfig.select_one(guild_id=ctx.guild.id)
+        if config is not None:
+            config.channel_id = None
+            await config.update()
+        await ctx.send("Namegame channel cleared!")
 
     @config.command()
     @has_permissions(manage_guild=True)
     async def setpings(self, ctx, enabled: bool):
         """Sets whether or not pings are enabled"""
-        with db.Session() as session:
-            config = session.query(NameGameConfig).filter_by(guild_id=ctx.guild.id).one_or_none()
-            if config is None:
-                config = NameGameConfig(guild_id=ctx.guild.id, channel_id=None, mode=SUPPORTED_MODES[0],
-                                        pings_enabled=int(enabled))
-                session.add(config)
-            else:
-                config.pings_enabled = int(enabled)
-            await ctx.send(f"Pings enabled set to `{enabled}`!")
+        config = await NameGameConfig.select_one(guild_id=ctx.guild.id)
+        if config is None:
+            config = NameGameConfig(guild_id=ctx.guild.id, channel_id=None, mode=SUPPORTED_MODES[0],
+                                    pings_enabled=int(enabled))
+            await config.insert()
+        else:
+            config.pings_enabled = int(enabled)
+            await config.update()
+        await ctx.send(f"Pings enabled set to `{enabled}`!")
 
     @config.command()
     @has_permissions(manage_guild=True)
     async def leaderboardedit(self, ctx, mode: str, user: typing.Union[discord.User, int], wins: int):
         """Edits the leaderboard"""
 
-        if type(user) == int:
+        if isinstance(user, int):
             uid = user
         else:
             uid = user.id
@@ -313,16 +315,17 @@ class NameGame(Cog):
             await ctx.send(
                 f"Game mode `{mode}` not supported! Please pick a mode that is one of: `{', '.join(SUPPORTED_MODES)}`")
             return
-        with db.Session() as session:
-            record = session.query(NameGameLeaderboard).filter_by(game_mode=mode, user_id=uid).one_or_none()
-            if record is None:
-                await ctx.send("User not on leaderboard!")
-                return
-            record.wins = wins
-            if type(user) == int:
-                await ctx.send(f"<@!{user}>'s wins now set to : **{wins}**")
-            else:
-                await ctx.send(f"{user.display_name}'s wins now set to: **{wins}**")
+        
+        record = await NameGameLeaderboard.select_one(game_mode=mode, user_id=uid, guild_id=ctx.guild.id)
+        if record is None:
+            await ctx.send("User not on leaderboard!")
+            return
+        record.wins = wins
+        await record.update()
+        if isinstance(user, int):
+            await ctx.send(f"<@!{user}>'s wins now set to : **{wins}**")
+        else:
+            await ctx.send(f"{user.display_name}'s wins now set to: **{wins}**")
 
     @config.command()
     @has_permissions(manage_guild=True)
@@ -332,20 +335,17 @@ class NameGame(Cog):
             await ctx.send(
                 f"Game mode `{mode}` not supported! Please pick a mode that is one of: `{', '.join(SUPPORTED_MODES)}`")
             return
-        with db.Session() as session:
-            session.query(NameGameLeaderboard).filter_by(game_mode=mode).delete()
+        await NameGameLeaderboard.delete_all(game_mode=mode, guild_id=ctx.guild.id)
         await ctx.send(f"Cleared leaderboard for mode {mode}")
 
     # TODO: configurable time limits, ping on event, etc
     # MORE TODO:
     """
-    fix %ng help (done)
-    fix %ng startround (done)
-    fix the wrong team dialouge (????)
     add pings
     i hate bots
-    make %ng addplayer be rhetorical question (done)
     figure out these stupid turn issues
+    
+    thanks past self i have no idea what this means
     """
 
     @ng.command()
@@ -379,20 +379,17 @@ class NameGame(Cog):
         One can select the robotics program by specifying one of "FRC" or "FTC".
         """
         if mode is None or mode.lower() not in SUPPORTED_MODES:
-            with db.Session() as session:
-                config = session.query(NameGameConfig).filter_by(guild_id=ctx.guild.id).one_or_none()
+            config = await NameGameConfig.select_one(guild_id=ctx.guild.id)
             mode = SUPPORTED_MODES[0] if config is None else config.mode
             await ctx.send(
                 f"Unspecified or invalid game mode,  assuming game mode `{mode}`. For a full list of game modes, run "
                 f"`{ctx.prefix}ng modes`")
 
-        pings_enabled = False
-        with db.Session() as session:
-            config = session.query(NameGameConfig).filter_by(guild_id=ctx.guild.id).one_or_none()
-            if config is not None and config.channel_id is not None and config.channel_id != ctx.channel.id:
-                await ctx.send("Games cannot be started in this channel!")
-                return
-            pings_enabled = (config is not None and config.pings_enabled)
+        config = await NameGameConfig.select_one(guild_id=ctx.guild.id)
+        if config is not None and config.channel_id is not None and config.channel_id != ctx.channel.id:
+            await ctx.send("Games cannot be started in this channel!")
+            return
+        pings_enabled = (config is not None and config.pings_enabled)
 
         if ctx.channel.id in self.games:
             await ctx.send("A game is currently going on! Wait till the players finish up to start again.")
@@ -596,25 +593,25 @@ class NameGame(Cog):
     async def leaderboard(self, ctx, mode: str = None):
         """Display top numbers of wins for the specified game mode"""
         if mode is None:
-            with db.Session() as session:
-                config = session.query(NameGameConfig).filter_by(guild_id=ctx.guild.id).one_or_none()
+            config = await NameGameConfig.select_one(guild_id=ctx.guild.id)
             mode = SUPPORTED_MODES[0] if config is None else config.mode
         if mode not in SUPPORTED_MODES:
             await ctx.send(
                 f"Game mode `{mode}` not supported! Please pick a mode that is one of: `{', '.join(SUPPORTED_MODES)}`")
             return
-        with db.Session() as session:
-            leaderboard = sorted(session.query(NameGameLeaderboard).filter_by(game_mode=mode).all(),
-                                 key=lambda i: i.wins, reverse=True)[:10]
-            embed = discord.Embed(color=discord.Color.gold(), title=f"{mode.upper()} Name Game Leaderboard")
-            for idx, entry in enumerate(leaderboard, 1):
-                user = ctx.bot.get_user(entry.user_id)
-                if user is None:
-                    embed.add_field(name=f"#{idx}: {entry.user_id}", value=entry.wins)
-                else:
-                    embed.add_field(name=f"#{idx}: {user.display_name}", value=entry.wins)
 
-            await ctx.send(embed=embed)
+        leaderboard = await NameGameLeaderboard.select(game_mode=mode, _extra_sql="ORDER BY wins DESC LIMIT 10")
+        #sorted(session.query(NameGameLeaderboard).filter_by(game_mode=mode).all(),
+        #          key=lambda i: i.wins, reverse=True)[:10]
+        embed = discord.Embed(color=discord.Color.gold(), title=f"{mode.upper()} Name Game Leaderboard")
+        for idx, entry in enumerate(leaderboard, 1):
+            user = ctx.bot.get_user(entry.user_id)
+            if user is None:
+                embed.add_field(name=f"#{idx}: {entry.user_id}", value=entry.wins)
+            else:
+                embed.add_field(name=f"#{idx}: {user.display_name}", value=entry.wins)
+
+        await ctx.send(embed=embed)
 
     leaderboard.example_usage = """
     `{prefix}ng leaderboard ftc` - display the namegame winning leaderboards for FTC.
@@ -622,40 +619,39 @@ class NameGame(Cog):
 
     @ng.command()
     async def teamstats(self, ctx, team: int = None, mode: str = None):
+        """Display team usage statistics for either a specific team or the top 10 most used teams."""
         if mode is None:
-            with db.Session() as session:
-                config = session.query(NameGameConfig).filter_by(guild_id=ctx.guild.id).one_or_none()
+            config = await NameGameConfig.select_one(guild_id=ctx.guild.id)
             mode = SUPPORTED_MODES[0] if config is None else config.mode
         if mode not in SUPPORTED_MODES:
             await ctx.send(
                 f"Game mode `{mode}` not supported! Please pick a mode that is one of: `{', '.join(SUPPORTED_MODES)}`")
             return
         if team is None:
-            with db.Session() as session:
-                leaderboard = sorted(session.query(NameGameTeamStats).filter_by(game_mode=mode).all(), 
-                                     key=lambda i: i.wins, reverse=True)[:10]
-                embed = discord.Embed(color=discord.Color.gold(), title=f"{mode.upper()} Name Game Team Usage Leaderboard")
-                for idx, entry in enumerate(leaderboard, 1):
-                    # TODO: add name field to team
-                    embed.add_field(name=f"#{idx}: {entry.team_id}", value=entry.uses)
+            #leaderboard = sorted(session.query(NameGameTeamStats).filter_by(game_mode=mode).all(), 
+            #                        key=lambda i: i.wins, reverse=True)[:10]
+            leaderboard = await NameGameTeamStats.select(game_mode=mode, _extra_sql="ORDER BY uses DESC LIMIT 10")
+            embed = discord.Embed(color=discord.Color.gold(), title=f"{mode.upper()} Name Game Team Usage Leaderboard")
+            for idx, entry in enumerate(leaderboard, 1):
+                # TODO: add name field to team
+                embed.add_field(name=f"#{idx}: {entry.team_id}", value=entry.uses)
             await ctx.send(embed=embed)
         else:
-            with db.Session() as session:
-                entry = session.query(NameGameTeamStats).filter_by(game_mode=mode, team_id=team).one_or_none()
-                if entry is None:
-                    await ctx.send(f"Sadly, it appears nobody has picked `{team}` in a game yet. Maybe you can be the first?")
-                else:
-                    ret = f"`{team}` has been used in name games **{entry.uses}** time(s)."
-                    if (str(team)[0] == '2' or str(team)[-1] == '2') and entry.uses > 10:
-                        ret += "\nMaybe it has something to do with the 2..."
-                    if mode.lower() == 'ftc':
-                        ret += "\n" + {
-                                1: "Unlimited potential, I'm telling you.",
-                                9421: "Hey, isn't that Ilan's team? I don't remember their name.",
-                                9656: "Hey, isn't that Justin's team? I don't remember their name either.",
-                                16236: "It's the funny juice team.",
-                                }.get(team, "")
-                    await ctx.send(ret)
+            entry = await NameGameTeamStats.select_one(game_mode=mode, team_id=team)
+            if entry is None:
+                await ctx.send(f"Sadly, it appears nobody has picked `{team}` in a game yet. Maybe you can be the first?")
+            else:
+                ret = f"`{team}` has been used in name games **{entry.uses}** time(s)."
+                if (str(team)[0] == '2' or str(team)[-1] == '2') and entry.uses > 10:
+                    ret += "\nMaybe it has something to do with the 2..."
+                if mode.lower() == 'ftc':
+                    ret += "\n" + {
+                            1: "Unlimited potential, I'm telling you.",
+                            9421: "Hey, isn't that Ilan's team? I don't remember their name.",
+                            9656: "Hey, isn't that Justin's team? I don't remember their name either.",
+                            16236: "It's the funny juice team.",
+                            }.get(team, "")
+                await ctx.send(ret)
 
 
     async def strike(self, ctx, game, player):
@@ -668,14 +664,14 @@ class NameGame(Cog):
         if game.check_win():
             # winning condition
             winner = list(game.players.keys())[0]
-            with db.Session() as session:
-                record = session.query(NameGameLeaderboard).filter_by(user_id=winner.id,
-                                                                      game_mode=game.mode).one_or_none()
-                if record is None:
-                    record = NameGameLeaderboard(user_id=winner.id, wins=1, game_mode=game.mode)
-                    session.add(record)
-                else:
-                    record.wins += 1
+
+            record = await NameGameLeaderboard.select_one(user_id=winner.id, guild_id=ctx.guild.id, game_mode=game.mode)
+            if record is None:
+                record = NameGameLeaderboard(user_id=winner.id, guild_id=ctx.guild.id, wins=1, game_mode=game.mode)
+                await record.insert()
+            else:
+                record.wins += 1
+                await record.update()
             win_embed = discord.Embed()
             win_embed.color = discord.Color.gold()
             win_embed.title = "We have a winner!"
@@ -687,14 +683,15 @@ class NameGame(Cog):
             game.running = False
 
         if not game.running:
-            with db.Session() as session:
+            async with orm.acquire() as conn:
                 for team in game.picked:
-                    stats = session.query(NameGameTeamStats).filter_by(team_id=team, game_mode=game.mode).one_or_none()
+                    stats = await NameGameTeamStats.select_one(team_id=team, game_mode=game.mode, _conn=conn)
                     if stats is None:
                         stats = NameGameTeamStats(team_id=team, game_mode=game.mode, uses=1)
-                        session.add(stats)
+                        await stats.insert(_conn=conn)
                     else:
                         stats.uses += 1
+                        await stats.update(_conn=conn)
                     
             self.games.pop(ctx.channel.id)
 
@@ -735,8 +732,6 @@ class NameGame(Cog):
         """Notifies people in the channel when it's their turn."""
         if game.pings_enabled:
             await ctx.send(msg)
-
-
 
     @Cog.listener()
     async def on_reaction_add(self, reaction, user):
@@ -838,29 +833,33 @@ class NameGame(Cog):
             game.vote_task = self.bot.loop.create_task(self.game_vote_countdown(ctx, game))
 
 
-class NameGameConfig(db.DatabaseObject):
+class NameGameConfig(orm.Model):
     """Configuration storage object"""
     __tablename__ = "namegame_config"
-    guild_id = db.Column(db.BigInteger, primary_key=True)
-    channel_id = db.Column(db.BigInteger, nullable=True)
-    mode = db.Column(db.String)
-    pings_enabled = db.Column(db.BigInteger)
+    __primary_key__ = ("guild_id",)
+    guild_id: psqlt.bigint
+    channel_id: psqlt.bigint
+    mode: psqlt.text
+    pings_enabled: psqlt.bigint
 
-
-class NameGameLeaderboard(db.DatabaseObject):
+# DROP namegame_leaderboard;
+class NameGameLeaderboard(orm.Model):
     """Leaderboard storage object"""
     __tablename__ = "namegame_leaderboard"
-    user_id = db.Column(db.BigInteger, primary_key=True)
-    wins = db.Column(db.BigInteger)
-    game_mode = db.Column(db.String)
+    __primary_key__ = ("user_id", "guild_id")
+    user_id: psqlt.bigint
+    guild_id: psqlt.bigint
+    wins: psqlt.bigint
+    game_mode: psqlt.text
 
-class NameGameTeamStats(db.DatabaseObject):
+class NameGameTeamStats(orm.Model):
     """interesting team frequency stats"""
     __tablename__ = "namegame_teamstats"
-    team_id = db.Column(db.BigInteger, primary_key=True)
-    game_mode = db.Column(db.String, primary_key=True)
-    team_nickname = db.Column(db.String, nullable=True) 
-    uses = db.Column(db.BigInteger)
+    __primary_key__ = ("team_id", "game_mode")
+    team_id: psqlt.bigint
+    game_mode: psqlt.text
+    team_nickname: psqlt.text
+    uses: psqlt.bigint
 
 def setup(bot):
     """Adds the namegame cog to the bot"""
