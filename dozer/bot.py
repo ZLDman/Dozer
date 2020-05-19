@@ -9,6 +9,7 @@ import aiohttp
 from discord.ext import commands
 
 from . import utils
+from .asyncdb.orm import orm
 
 # why on earth should logging objects be capitalized?
 dozer_logger = logging.getLogger('dozer')
@@ -164,4 +165,5 @@ class Dozer(commands.Bot):
         self._restarting = restart
         await self.logout()
         await self.close()
+        await orm.close()
         self.loop.stop()

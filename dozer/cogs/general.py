@@ -98,9 +98,16 @@ class General(Cog):
         if usage is not None:
             info.add_field(name='Usage', value=usage.format(prefix=ctx.prefix, name=ctx.invoked_with), inline=False)
         info.set_footer(text='{} Help | {!r} command | Info'.format(self.name, command.qualified_name))
+
+        # need to figure out how to walk command.commands correctly
+        def all_subcommands(cmd):
+            if not isinstance(cmd, Group):
+                return set()
+            return cmd.commands | set.union(*[all_subcommands(c) for c in cmd.commands])
+
         await self._show_help(ctx, info, 'Subcommands: {prefix}{name} {signature}', '', '{command.qualified_name!r} command',
-                              command.commands if isinstance(command, Group) else set(), 
-                              command=command, name=command.qualified_name, signature=command.signature)
+                              #command.commands if isinstance(command, Group) else set(), 
+                              all_subcommands(command), command=command, name=command.qualified_name, signature=command.signature)
 
     async def _help_cog(self, ctx, cog):
         """Gets the help message for one cog."""
@@ -115,7 +122,7 @@ class General(Cog):
         footer = '{} Help | {} | Page {}'.format(self.name, footer, '{page_num} of {len_pages}')
         # Page info is inserted as a parameter so page_num and len_pages aren't evaluated now
         if commands:
-            command_chunks = list(chunk(sorted(commands, key=lambda cmd: cmd.name), 4))
+            command_chunks = list(chunk(sorted(commands, key=lambda cmd: cmd.qualified_name), 4))
             format_args['len_pages'] = len(command_chunks)
             pages = []
             for page_num, page_commands in enumerate(command_chunks):

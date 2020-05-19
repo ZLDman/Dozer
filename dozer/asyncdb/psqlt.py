@@ -6,6 +6,7 @@ class Column:
 
 
 if typing.TYPE_CHECKING:
+    # pylint: disable=unused-argument
     def varchar(length: int) -> typing.Type[str]:
         return str
 else:

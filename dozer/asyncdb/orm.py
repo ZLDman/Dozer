@@ -51,6 +51,9 @@ class ORM:
                                 columns[field_name] = field_type.sql
                         scls._columns = columns
                         scls._orm = self
+                        if scls.__primary_key__:
+                            if not isinstance(scls.__primary_key__, tuple):
+                                raise TypeError(f"Primary key fields should be tuples, did you forget a comma in {scls.__name__}?")
 
                         async with conn.transaction():
                             db_columns = await conn.fetch("SELECT column_name from information_schema.columns "
@@ -182,16 +185,18 @@ class ORM:
                 return await cls.fetch(*([qs] + list(properties.values())), _conn=_conn)
 
             def primary_key(self):
+                """Returns the primary key tuple of the table."""
                 if not self.__primary_key__:
                     return None
                 return tuple(getattr(self, k) for k in self.__primary_key__)
 
             @classmethod
             def table_name(cls):
+                """Regurns the fully qualified table name of the Model."""
                 return f"{cls.__schemaname__}.{cls.__tablename__}"
 
             async def upsert(self, conn=None, retry=5):
-                """this performs an upsert by doing a select then an insert/update, this can be subject to race conditions
+                """This performs an upsert by doing a select then an insert/update, this can be subject to race conditions
                 and should be avoided if possible."""
 
                 exc = None
@@ -211,6 +216,7 @@ class ORM:
                 raise exc
 
         self.Model = Model
+        self.acquire = None
         self.pool: asyncpg.pool.Pool
 
     async def join(self, tables, tnames, join_on, where=None, addn_sql="", params=None, use_dict=True):
@@ -263,6 +269,7 @@ class ORM:
 
 
     async def connect(self, **kwargs):
+        """Connects to the database and creates the internal asyncpg pool."""
         async def connection_initer(conn):
             await conn.set_type_codec(
                 'json',
@@ -277,6 +284,7 @@ class ORM:
 
 
     async def close(self):
+        """Shuts down the asyncpg pool."""
         await self.pool.close()
 
     
