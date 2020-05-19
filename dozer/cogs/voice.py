@@ -93,9 +93,9 @@ class Voice(Cog):
 class Voicebinds(db.DatabaseObject):
     """DB object to keep track of voice to text channel access bindings."""
     __tablename__ = 'voicebinds'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer)#, primary_key=True)
     guild_id = db.Column(db.Integer)
-    channel_id = db.Column(db.Integer)
+    channel_id = db.Column(db.Integer, primary_key=True)
     role_id = db.Column(db.Integer)
 
 
