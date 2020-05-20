@@ -8,7 +8,8 @@ import discord
 from discord.ext.commands import cooldown, BucketType, guild_only
 
 from ._utils import *
-from .. import db
+from ..asyncdb.orm import orm
+from ..asyncdb import psqlt
 
 blurple = discord.Color.blurple()
 datetime_format = '%Y-%m-%d %I:%M %p'
@@ -154,11 +155,12 @@ class Info(Cog):
             del self.afk_map[ctx.author.id]
 
 
-class AFKStatus(db.DatabaseObject):
+class AFKStatus(orm.Model):
     """Holds AFK data."""
     __tablename__ = "afk_status"
-    user_id = db.Column(db.Integer, primary_key=True)
-    reason = db.Column(db.String)
+    __primary_key__ = ("user_id",)
+    user_id: psqlt.bigint
+    reason: psqlt.text
 
 
 def setup(bot):

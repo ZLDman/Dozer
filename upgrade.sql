@@ -14,3 +14,7 @@ ALTER TABLE giveable_roles ALTER COLUMN norm_name DROP NOT NULL;
 ALTER TABLE missing_roles ALTER COLUMN role_name DROP NOT NULL;
 ALTER TABLE missing_roles DROP CONSTRAINT missing_roles_guild_id_fkey;
 DROP TABLE guilds;
+
+-- drop tables that need remaking
+DROP TABLE afk_status;
+DROP TABLE namegame_leaderboard;
