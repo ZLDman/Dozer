@@ -102,11 +102,19 @@ class Teams(Cog):
         else:
             e = discord.Embed(type='rich')
             e.title = 'Users on team {}'.format(team_number)
-            e.description = "Users: \n"
+            segments = ["Users: \n"]
             for i in users:
                 user = ctx.guild.get_member(i.user_id)
                 if user is not None:
-                    e.description = "{}{} {} \n".format(e.description, user.display_name, user.mention)
+                    line = f"{user.display_name} {user.mention}\n"
+                    if len(segments[-1]) + len(line) >= 1024:
+                        segments.append(line)
+                    else :
+                        segments[-1] += line
+                    #e.description = "{}{} {} \n".format(e.description, user.display_name, user.mention)
+            e.description = segments[0]
+            for i, seg in enumerate(segments[1:], 1):
+                e.add_field(name=("more " * i).capitalize() + "users", value=seg)
             await ctx.send(embed=e)
 
     onteam.example_usage = """
