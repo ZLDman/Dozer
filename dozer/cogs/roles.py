@@ -113,7 +113,7 @@ class Roles(Cog):
     @Cog.listener()
     async def on_guild_role_delete(self, role):
         """Automatically delete giveme roles if they are deleted from the guild"""
-        rolelist = [role]
+        rolelist = [role.id]
         await self.giveme_purge(rolelist)
 
     @group(invoke_without_command=True)

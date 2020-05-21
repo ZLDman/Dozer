@@ -113,9 +113,9 @@ class ORM:
                 """Equivalent to Model.from_record(await asyncpg.fetch(...))"""
                 return cls.from_record(await cls._fetch(args, _one=True, conn=_conn))
 
-            async def insert(self, _conn=None, _upsert=""):
+            async def insert(self, _conn=None, _upsert="", _fields=None):
                 """Inserts the model into the database. Use _upsert to specify an ON CONFLICT or other clause."""
-                fields = self._columns.keys()
+                fields = _fields or self._columns.keys()
                 qs = f"INSERT INTO {self.__schemaname__}.{self.__tablename__}({','.join(fields)}) VALUES(" + ",".join(
                     f"${i}" for i in range(1, len(fields) + 1)) + ")" + (_upsert if _upsert else "")
                 args = [qs] + [getattr(self, f) for f in fields]

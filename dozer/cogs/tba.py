@@ -122,7 +122,6 @@ class TBA(Cog):
                     pages.append(f"**{base} YouTube** \nhttps://youtu.be/{media.foreign_key}")
                     continue
                 else:
-                    print(media.details)
                     name, url, img_url = {
                         "cdphotothread": (
                             "Chief Delphi",

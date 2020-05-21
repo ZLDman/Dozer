@@ -91,7 +91,11 @@ class General(Cog):
 
     async def _help_command(self, ctx, command):
         """Gets the help message for one command."""
-        info = discord.Embed(title='Command: {}{} {}'.format(ctx.prefix, "|".join([command.name] + command.aliases), command.signature), 
+        if command.aliases:
+            fqn = f"{command.full_parent_name}[{'|'.join([command.name] + list(command.aliases))}]"
+        else:
+            fqn = command.qualified_name
+        info = discord.Embed(title='Command: {}{} {}'.format(ctx.prefix, fqn, command.signature), 
                              description=command.help or (None if command.example_usage else 'No information provided.'), 
                              color=discord.Color.blue())
         usage = command.example_usage
@@ -137,7 +141,7 @@ class General(Cog):
                     else:
                         embed_value = 'No information provided.'
                     if command.aliases:
-                        cmd_names = "|".join([command.name] + command.aliases)
+                        cmd_names = "|".join([command.name] + list(command.aliases))
                         page.add_field(name=f"{ctx.prefix}{command.full_parent_name}[{cmd_names}] {command.signature}", value=embed_value, inline=False)
                     else:
                         page.add_field(name=f"{ctx.prefix}{command.qualified_name} {command.signature}", value=embed_value, inline=False)

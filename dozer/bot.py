@@ -166,4 +166,5 @@ class Dozer(commands.Bot):
         await self.logout()
         await self.close()
         await orm.close()
+        await self.http_session.close()
         self.loop.stop()
