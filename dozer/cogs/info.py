@@ -64,11 +64,11 @@ class Info(Cog):
             platforms = self.pluralize([platform for platform in ('web', 'desktop', 'mobile') if
                                         getattr(member, f'{platform}_status') is not discord.Status.offline])
             status = f'{status} on {platforms}'
-        activities = '\n'.join(self._format_activities(member.activities))
-        embed.add_field(name='Status and Activity', value=f'{status}\n{activities}', inline=True)
+        activities = ', '.join(self._format_activities(member.activities))
+        embed.add_field(name='Status and Activity', value=f'{status}, {activities}', inline=True)
 
-        embed.add_field(name='Roles', value=', '.join(role.name for role in member.roles[:0:-1]) or 'None')
-        embed.add_field(name='Icon URL', value=icon_url)
+        embed.add_field(name='Roles', value=', '.join(role.name for role in member.roles[:0:-1]) or 'None', inline=False)
+        embed.add_field(name='Icon URL', value=icon_url, inline=False)
         embed.set_thumbnail(url=icon_url)
         await ctx.send(embed=embed)
 
@@ -86,11 +86,11 @@ class Info(Cog):
             if isinstance(activity, discord.CustomActivity):
                 return f"{activity.emoji} {activity.name}"
             elif isinstance(activity, discord.Spotify):
-                return f'Listening to {activity.title} by {activity.artist} on Spotify'
+                return f'listening to {activity.title} by {activity.artist} on Spotify'
             elif activity.type is discord.ActivityType.listening:
-                return f'Listening to {activity.name}'  # Special-cased to insert " to"
+                return f'listening to {activity.name}'  # Special-cased to insert " to"
             else:
-                return f'{activity.type.name.capitalize()} {activity.name}'
+                return f'{activity.type.name} {activity.name}'
 
         # Some games show up twice in the list (e.g. "Rainbow Six Siege" and "Tom Clancy's Rainbow Six Siege") so we
         # need to dedup them by string similarity before displaying them
@@ -128,20 +128,19 @@ class Info(Cog):
         animated_emoji = sum(e.animated for e in ctx.guild.emojis)
         e = discord.Embed(color=blurple)
         e.set_thumbnail(url=guild.icon_url)
-        e.add_field(name='Name', value=guild.name)
+        e.title = guild.name
+        e.description = f"{guild.member_count} members, {len(guild.channels)} channels, {len(guild.roles) - 1} roles"
+        #e.add_field(name='Name', value=guild.name)
         e.add_field(name='ID', value=guild.id)
         e.add_field(name='Created at', value=guild.created_at.strftime(datetime_format))
-        e.add_field(name='Owner', value=guild.owner)
-        e.add_field(name='Members', value=guild.member_count)
-        e.add_field(name='Channels', value=str(len(guild.channels)))
-        e.add_field(name='Roles', value=str(len(guild.roles) - 1))  # Remove @everyone
+        e.add_field(name='Owner', value=guild.owner.mention)
         e.add_field(name='Emoji', value="{} static, {} animated".format(static_emoji, animated_emoji))
         e.add_field(name='Region', value=guild.region.name)
-        e.add_field(name='Icon URL', value=guild.icon_url or 'This guild has no icon.')
         e.add_field(name='Nitro Boost', value=f'Level {ctx.guild.premium_tier}, '
                                               f'{ctx.guild.premium_subscription_count} booster(s)\n'
                                               f'{ctx.guild.filesize_limit // 1024**2}MiB files, '
                                               f'{ctx.guild.bitrate_limit / 1000:0.1f}kbps voice')
+        e.add_field(name='Icon URL', value=guild.icon_url or 'This guild has no icon.', inline=False)
 
         await ctx.send(embed=e)
 
