@@ -38,7 +38,8 @@ CREATE TABLE guild_config AS SELECT guilds.id,
 
     memberlogconfig.memberlog_channel as member_log_channel_id,
     messagelogconfig.messagelog_channel as message_log_channel_id,
-    guild_msg_links.role_id as links_role_id
+    guild_msg_links.role_id as links_role_id,
+    welcome_channel.channel_id as welcome_channel_id
 
     FROM (
         SELECT id FROM modlogconfig UNION
@@ -46,13 +47,15 @@ CREATE TABLE guild_config AS SELECT guilds.id,
         SELECT guild_id AS id FROM new_members UNION
         SELECT id FROM memberlogconfig UNION 
         SELECT id FROM messagelogconfig UNION 
-        SELECT guild_id AS id FROM guild_msg_links
+        SELECT guild_id AS id FROM guild_msg_links UNION
+        SELECT id FROM welcome_channel
         ) AS guilds
     LEFT OUTER JOIN modlogconfig ON modlogconfig.id = guilds.id
     LEFT OUTER JOIN member_roles ON member_roles.id = guilds.id
     LEFT OUTER JOIN new_members ON new_members.guild_id = guilds.id
     LEFT OUTER JOIN memberlogconfig ON memberlogconfig.id = guilds.id
     LEFT OUTER JOIN messagelogconfig ON messagelogconfig.id = guilds.id
-    LEFT OUTER JOIN guild_msg_links ON guild_msg_links.guild_id = guilds.id;
+    LEFT OUTER JOIN guild_msg_links ON guild_msg_links.guild_id = guilds.id
+    LEFT OUTER JOIN welcome_channel ON welcome_channel.id = guilds.id;
 
 ALTER TABLE guild_config ADD PRIMARY KEY (guild_id);

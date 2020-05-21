@@ -675,6 +675,7 @@ class Moderation(Cog):
         e.add_field(name="Member log", value=channel_ent(config.member_log_channel_id))
         e.add_field(name="Edit/delete log", value=channel_ent(config.message_log_channel_id))
 
+        e.add_field(name="Invite welcome channel", value=channel_ent(config.welcome_channel_id))
         e.add_field(name="Member role", value=role_ent(config.member_role_id))
         e.add_field(name="Links role", value=role_ent(config.links_role_id))
         await ctx.send(embed=e)
@@ -865,6 +866,30 @@ class Moderation(Cog):
     `{prefix}serverconfig unset messagelog` - disable this behavior
     """
 
+    @serverconfig.command(name="welcome")
+    @has_permissions(administrator=True)
+    async def welcomeconfig(self, ctx, *, welcome_channel: discord.TextChannel):
+        """
+        Sets the new member channel for this guild.
+        """
+        if welcome_channel.guild != ctx.guild:
+            await ctx.send("That channel is not in this guild.")
+            return
+        config = await self.guild_config.query_one(guild_id=ctx.guild.id)
+        if config is not None:
+            config.welcome_channel_id = welcome_channel.id
+            await config.update()
+        else:
+            config = GuildConfig.make_defaults(ctx.guild)
+            config.welcome_channel_id = welcome_channel.id
+            await config.insert()
+        self.guild_config.invalidate_entry(guild_id=ctx.guild.id)
+        await ctx.send("Welcome channel set to {}".format(welcome_channel.mention))
+
+    welcomeconfig.example_usage = """
+    `{prefix}serverconfig welcome #new-members` - Sets the invite channel to #new-members.
+    """
+
 
 # ALTER TABLE mutes RENAME COLUMN id TO member_id
 # ALTER TABLE deafens RENAME COLUMN id TO member_id
@@ -932,6 +957,7 @@ class GuildConfig(orm.Model):
     mod_log_channel_id: psqlt.bigint
     member_log_channel_id: psqlt.bigint
     message_log_channel_id: psqlt.bigint
+    welcome_channel_id: psqlt.bigint
 
     member_role_id: psqlt.bigint
     links_role_id: psqlt.bigint
