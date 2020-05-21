@@ -116,7 +116,7 @@ class General(Cog):
         """Gets the help message for one cog."""
         await self._show_help(ctx, None, 'Category: {cog_name}', inspect.cleandoc(cog.__doc__ or ''),
                               '{cog_name!r} category',
-                              (command for command in ctx.bot.commands if command.instance is cog),
+                              (command for command in ctx.bot.commands if command.cog is cog),
                               cog_name=type(cog).__name__)
 
     async def _show_help(self, ctx, start_page, title, description, footer, commands, **format_args):
@@ -237,10 +237,3 @@ def setup(bot):
     """Adds the general cog to the bot"""
     bot.remove_command('help')
     bot.add_cog(General(bot))
-
-
-#class WelcomeChannel(db.DatabaseObject):
-#    """Maintains a list of channels for welcome messages"""
-#    __tablename__ = 'welcome_channel'
-#    id = db.Column(db.BigInteger, primary_key=True)
-#    channel_id = db.Column(db.BigInteger, nullable=True)

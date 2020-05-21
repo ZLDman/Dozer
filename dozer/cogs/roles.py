@@ -3,11 +3,11 @@
 import discord
 import discord.utils
 from discord.ext.commands import cooldown, BucketType, has_permissions, BadArgument, MissingPermissions
-from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from ._utils import *
 from ..asyncdb.orm import orm
 from ..asyncdb import psqlt
+
 
 
 class Roles(Cog):
@@ -27,7 +27,7 @@ class Roles(Cog):
         """Normalizes a role for consistency in the DB."""
         return name.strip().casefold()
 
-    @Cog.listener()
+    @Cog.listener('on_member_join')
     async def on_member_join(self, member):
         """Restores a member's roles when they join if they have joined before."""
         if 'silent' in self.bot.config and self.bot.config['silent']:
@@ -77,7 +77,7 @@ class Roles(Cog):
 
         await dest.send(embed=e)
 
-    @Cog.listener()
+    @Cog.listener('on_member_remove')
     async def on_member_remove(self, member):
         """Saves a member's roles when they leave in case they rejoin."""
         guild_id = member.guild.id
@@ -110,7 +110,7 @@ class Roles(Cog):
         await self.giveme_purge(role_id_list)
         return counter
 
-    @Cog.listener()
+    @Cog.listener("on_guild_role_delete")
     async def on_guild_role_delete(self, role):
         """Automatically delete giveme roles if they are deleted from the guild"""
         rolelist = [role.id]

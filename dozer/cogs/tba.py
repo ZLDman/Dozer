@@ -6,6 +6,7 @@ import itertools
 from pprint import pformat
 from urllib.parse import quote as urlquote, urljoin
 
+import aiohttp
 import discord
 from discord.ext.commands import BadArgument
 import googlemaps

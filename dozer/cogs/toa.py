@@ -8,7 +8,7 @@ import aiotoa.models
 from aiotoa import *
 from ._utils import *
 
-embed_color = discord.Color(0xff9800)
+embed_color = discord.Color(0xf89808)
 
 
 def to_season_key(base_year):
@@ -112,7 +112,7 @@ class TOA(Cog):
         await self.team.callback(self, ctx, team_num, season)  # This works but Pylint throws an error
 
     toa.example_usage = """
-    `{prefix}toa 5667` - show information on team 5667, the Robominers
+    `{prefix}toa 5667` - show information on team 5667, Robominers
     """
 
     @toa.command()

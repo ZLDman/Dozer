@@ -733,7 +733,7 @@ class NameGame(Cog):
         if game.pings_enabled:
             await ctx.send(msg)
 
-    @Cog.listener()
+    @Cog.listener("on_reaction_add")
     async def on_reaction_add(self, reaction, user):
         """When reactions are added, trigger the voting handler"""
         if reaction.message.channel.id not in self.games:

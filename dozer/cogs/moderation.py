@@ -160,9 +160,9 @@ class Moderation(Cog):
                 await user.insert(_conn=conn, _upsert="ON CONFLICT DO NOTHING")
                 await self.perm_override(member, send_messages=False, add_reactions=False)
 
-                self.bot.loop.create_task(
-                    self.punishment_timer(seconds, member, Mute, reason, actor or member.guild.me, orig_channel=orig_channel))
-                return True
+            self.bot.loop.create_task(
+                self.punishment_timer(seconds, member, Mute, reason, actor or member.guild.me, orig_channel=orig_channel))
+            return True
 
     async def _unmute(self, member: discord.Member):
         """Unmutes a user."""
@@ -617,18 +617,20 @@ class Moderation(Cog):
     `{prefix}undeafen @user reason` - undeafen @user for a given (optional) reason
     """
 
-    @has_permissions(move_members=True)
-    @bot_has_permissions(manage_channels=True, move_members=True)
     @command()
     async def voicekick(self, ctx, member: discord.Member, reason="No reason provided"):
         """Kick a user from voice chat. This is most useful if their perms to rejoin have already been removed."""
         async with ctx.typing():
-            if not member.voice.channel:
+            if member.voice is None:
                 await ctx.send("User is not in a voice channel!")
                 return
-            vc = await ctx.guild.create_voice_channel("_dozer_voicekick", reason=reason)
-            await member.move_to(vc, reason=reason)
-            await vc.delete(reason=reason)
+            if not member.voice.channel.permissions_for(ctx.author).move_members:
+                await ctx.send("You do not have permission to do this!")
+                return
+            if not member.voice.channel.permissions_for(ctx.me).move_members:
+                await ctx.send("I do not have permission to do this!")
+                return
+            await member.edit(voice_channel=None, reason=reason)
             await ctx.send(f"{member} has been kicked from voice chat.")
     voicekick.example_usage = """
     `{prefix}voicekick @user reason` - kick @user out of voice
@@ -888,6 +890,7 @@ class PunishmentTimerRecord(orm.Model):
         return (await self._fetch(args, _one=True, conn=_conn))["id"]
 
     type_map = {p.type: p for p in (Mute, Deafen)}
+
 
 class GuildConfig(orm.Model):
     """Stores guild specific general configuration. """
