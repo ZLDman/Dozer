@@ -315,7 +315,7 @@ class NameGame(Cog):
             await ctx.send(
                 f"Game mode `{mode}` not supported! Please pick a mode that is one of: `{', '.join(SUPPORTED_MODES)}`")
             return
-        
+
         record = await NameGameLeaderboard.select_one(game_mode=mode, user_id=uid, guild_id=ctx.guild.id)
         if record is None:
             await ctx.send("User not on leaderboard!")
@@ -628,8 +628,6 @@ class NameGame(Cog):
                 f"Game mode `{mode}` not supported! Please pick a mode that is one of: `{', '.join(SUPPORTED_MODES)}`")
             return
         if team is None:
-            #leaderboard = sorted(session.query(NameGameTeamStats).filter_by(game_mode=mode).all(), 
-            #                        key=lambda i: i.wins, reverse=True)[:10]
             leaderboard = await NameGameTeamStats.select(game_mode=mode, _extra_sql="ORDER BY uses DESC LIMIT 10")
             embed = discord.Embed(color=discord.Color.gold(), title=f"{mode.upper()} Name Game Team Usage Leaderboard")
             for idx, entry in enumerate(leaderboard, 1):
@@ -646,11 +644,11 @@ class NameGame(Cog):
                     ret += "\nMaybe it has something to do with the 2..."
                 if mode.lower() == 'ftc':
                     ret += "\n" + {
-                            1: "Unlimited potential, I'm telling you.",
-                            9421: "Hey, isn't that Ilan's team? I don't remember their name.",
-                            9656: "Hey, isn't that Justin's team? I don't remember their name either.",
-                            16236: "It's the funny juice team.",
-                            }.get(team, "")
+                        1: "Unlimited potential, I'm telling you.",
+                        9421: "Hey, isn't that Ilan's team? I don't remember their name.",
+                        9656: "Hey, isn't that Justin's team? I don't remember their name either.",
+                        16236: "It's the funny juice team.",
+                        }.get(team, "")
                 await ctx.send(ret)
 
 
@@ -692,7 +690,7 @@ class NameGame(Cog):
                     else:
                         stats.uses += 1
                         await stats.update(_conn=conn)
-                    
+
             self.games.pop(ctx.channel.id)
 
     async def display_info(self, ctx, game):

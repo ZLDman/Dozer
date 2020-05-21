@@ -14,6 +14,7 @@ class Teams(Cog):
 
     @classmethod
     def validate(cls, team_type, team_number):
+        """Validate team input to be correct, and raise BadArgument if it's not."""
         if not team_number.isalnum() or not team_number.isascii():
             raise BadArgument("Team numbers must be alphanumeric!")
         z = team_type.casefold()
@@ -27,7 +28,7 @@ class Teams(Cog):
         if z == 'vexu':
             if len(team_number) > 6:
                 raise BadArgument("Invalid VexU team number specified!")
-        
+
         if z == 'vex':
             z = 'vrc'
         if z == 'vrc':
@@ -75,7 +76,7 @@ class Teams(Cog):
         """Allows you to see the teams for the mentioned user. If no user is mentioned, your teams are displayed."""
         if user is None:
             user = ctx.author
-        
+
         teams = await TeamNumbers.select(user_id=user.id)
         if not teams:
             raise BadArgument("Couldn't find any team associations for that user!")
@@ -109,7 +110,7 @@ class Teams(Cog):
                     line = f"{user.display_name} {user.mention}\n"
                     if len(segments[-1]) + len(line) >= 1024:
                         segments.append(line)
-                    else :
+                    else:
                         segments[-1] += line
                     #e.description = "{}{} {} \n".format(e.description, user.display_name, user.mention)
             e.description = segments[0]

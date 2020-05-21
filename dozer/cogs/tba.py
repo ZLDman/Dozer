@@ -117,45 +117,43 @@ class TBA(Cog):
             pages = []
             base = f"FRC Team {team_num} {year} Media: "
             for media in team_media:
-
                 if media.type == "youtube":
                     pages.append(f"**{base} YouTube** \nhttps://youtu.be/{media.foreign_key}")
                     continue
-                else:
-                    name, url, img_url = {
-                        "cdphotothread": (
-                            "Chief Delphi",
-                            "https://www.chiefdelphi.com/media/photos/{foreign_key}",
-                            "https://www.chiefdelphi.com/media/img/{image_partial}"
-                        ),
-                        "imgur": (
-                            "Imgur",
-                            "https://imgur.com/{foreign_key}",
-                            "https://i.imgur.com/{foreign_key}.png"
-                        ),
-                        "instagram-image": (
-                            "instagram",
-                            "https://www.instagram.com/p/{foreign_key}",
-                            "https://www.instagram.com/p/{foreign_key}/media"
-                        ),
-                        "grabcad": (
-                            "GrabCAD",
-                            "https://grabcad.com/library/{foreign_key}",
-                            "{model_image}"
-                        ),
-                        "external-link": (
-                            "Hall Of Fame Chairman's Essay",
-                            "{foreign_key}",
-                            "{foreign_key}"
-                        )
-                    }.get(media.type, (None, None, None))
-                    if name is None:
-                        # this is actually most likely the team icon image
-                        continue
-                    media.details['foreign_key'] = media.foreign_key
-                    page = discord.Embed(title=base + name, url=url.format(**media.details))
-                    page.set_image(url=img_url.format(**media.details))
-                    pages.append(page)
+                name, url, img_url = {
+                    "cdphotothread": (
+                        "Chief Delphi",
+                        "https://www.chiefdelphi.com/media/photos/{foreign_key}",
+                        "https://www.chiefdelphi.com/media/img/{image_partial}"
+                    ),
+                    "imgur": (
+                        "Imgur",
+                        "https://imgur.com/{foreign_key}",
+                        "https://i.imgur.com/{foreign_key}.png"
+                    ),
+                    "instagram-image": (
+                        "instagram",
+                        "https://www.instagram.com/p/{foreign_key}",
+                        "https://www.instagram.com/p/{foreign_key}/media"
+                    ),
+                    "grabcad": (
+                        "GrabCAD",
+                        "https://grabcad.com/library/{foreign_key}",
+                        "{model_image}"
+                    ),
+                    "external-link": (
+                        "Hall Of Fame Chairman's Essay",
+                        "{foreign_key}",
+                        "{foreign_key}"
+                    )
+                }.get(media.type, (None, None, None))
+                if name is None:
+                    # this is actually most likely the team icon image
+                    continue
+                media.details['foreign_key'] = media.foreign_key
+                page = discord.Embed(title=base + name, url=url.format(**media.details))
+                page.set_image(url=img_url.format(**media.details))
+                pages.append(page)
 
             if len(pages):
                 await paginate(ctx, pages)

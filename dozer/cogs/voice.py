@@ -22,7 +22,7 @@ class Voice(Cog):
                 config = await Voicebinds.select_one(channel_id=before.channel.id)
                 if config is not None:
                     await member.remove_roles(member.guild.get_role(config.role_id))
-            
+
             if after.channel is not None:
                 # join event, give role
                 config = await Voicebinds.select_one(channel_id=after.channel.id)

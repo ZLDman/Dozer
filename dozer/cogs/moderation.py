@@ -111,12 +111,12 @@ class Moderation(Cog):
         user = await punishment.select_one(member_id=target.id, guild_id=target.guild.id)
         if user is not None:
             await self.mod_log(actor,
-                                "un" + punishment.past_participle,
-                                target,
-                                reason,
-                                orig_channel,
-                                embed_color=discord.Color.green(),
-                                global_modlog=global_modlog)
+                               "un" + punishment.past_participle,
+                               target,
+                               reason,
+                               orig_channel,
+                               embed_color=discord.Color.green(),
+                               global_modlog=global_modlog)
             self.bot.loop.create_task(punishment.finished_callback(self, target))
         ent = await PunishmentTimerRecord.select_one(id=ent_id)
         if ent:
@@ -319,7 +319,7 @@ class Moderation(Cog):
                 e.add_field(name="Footer", value=i.footer)
         if message.attachments:
             e.add_field(name="Attachments", value=", ".join([i.url for i in message.attachments]))
-        
+
         config = await self.guild_config.query_one(guild_id=message.guild.id)
         if config is not None and config.message_log_channel_id is not None:
             channel = message.guild.get_channel(config.message_log_channel_id)
@@ -736,7 +736,7 @@ class Moderation(Cog):
     async def nmconfig(self, ctx, channel_mention: discord.TextChannel, role: discord.Role, *, message):
         """Sets the config for the new members channel"""
 
-        await GuildConfig.update_guild(ctx.guild, new_members_channel_id=channel_mention.id, 
+        await GuildConfig.update_guild(ctx.guild, new_members_channel_id=channel_mention.id,
                                        new_members_role_id=role.id, new_members_message=message.casefold())
 
         role_name = role.name
@@ -746,7 +746,7 @@ class Moderation(Cog):
 
     nmconfig.example_usage = """
     `{prefix}serverconfig newmem #new_members Member I have read the rules and regulations`""" +\
-    """ - Configures the #new_members channel so if someone types "I have read the rules and regulations" it assigns them the Member role. 
+    """ - Configures the #new_members channel so if someone types "I have read the rules and regulations" it assigns them the Member role.
     `{prefix}serverconfig unset newmem` - Clear any settings back to default
     """
 

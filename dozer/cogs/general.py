@@ -94,8 +94,8 @@ class General(Cog):
             fqn = f"{command.full_parent_name}[{'|'.join([command.name] + list(command.aliases))}]"
         else:
             fqn = command.qualified_name
-        info = discord.Embed(title='Command: {}{} {}'.format(ctx.prefix, fqn, command.signature), 
-                             description=command.help or (None if command.example_usage else 'No information provided.'), 
+        info = discord.Embed(title='Command: {}{} {}'.format(ctx.prefix, fqn, command.signature),
+                             description=command.help or (None if command.example_usage else 'No information provided.'),
                              color=discord.Color.blue())
         usage = command.example_usage
         if usage is not None:
@@ -109,7 +109,6 @@ class General(Cog):
             return cmd.commands | set.union(*[all_subcommands(c) for c in cmd.commands])
 
         await self._show_help(ctx, info, 'Subcommands: {prefix}{name} {signature}', '', '{command.qualified_name!r} command',
-                              #command.commands if isinstance(command, Group) else set(), 
                               all_subcommands(command), command=command, name=command.qualified_name, signature=command.signature)
 
     async def _help_cog(self, ctx, cog):
@@ -141,7 +140,8 @@ class General(Cog):
                         embed_value = 'No information provided.'
                     if command.aliases:
                         cmd_names = "|".join([command.name] + list(command.aliases))
-                        page.add_field(name=f"{ctx.prefix}{command.full_parent_name}[{cmd_names}] {command.signature}", value=embed_value, inline=False)
+                        page.add_field(name=f"{ctx.prefix}{command.full_parent_name}[{cmd_names}] {command.signature}", value=embed_value,
+                                       inline=False)
                     else:
                         page.add_field(name=f"{ctx.prefix}{command.qualified_name} {command.signature}", value=embed_value, inline=False)
 

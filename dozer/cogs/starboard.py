@@ -69,7 +69,7 @@ class Starboard(Cog):
             prev_embed = starboard_msg.embeds[0]
             await starboard_msg.edit(content=starboard_msg_content, embed=prev_embed)
         else:
-            starboard_msg = await starboard_channel.send(starboard_msg_content, embed=self.make_starboard_embed(msg)) 
+            starboard_msg = await starboard_channel.send(starboard_msg_content, embed=self.make_starboard_embed(msg))
             msg_ent = StarboardMessage(message_id=msg.id, starboard_message_id=starboard_msg.id, reaction_count=reaction_count)
             await msg_ent.insert(_upsert="ON CONFLICT (message_id) DO UPDATE SET reaction_count=EXCLUDED.reaction_count")
 

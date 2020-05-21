@@ -1,9 +1,9 @@
 """
 A very, very barebones asyncpg-backed ORM.
 
-Shouldn't be vulnerable to SQL injection provided that 
-__schemaname__, __tablename__, __primary_key__, and _columns are not set to 
-arbitrary user input. 
+Shouldn't be vulnerable to SQL injection provided that
+__schemaname__, __tablename__, __primary_key__, and _columns are not set to
+arbitrary user input.
 
 And that the keys of `properties=` arguments isn't arbitrary either apparently.
 
@@ -18,7 +18,7 @@ import asyncpg
 from .psqlt import Column
 
 
-#pylint: disable=not-an-iterable
+#pylint: disable=not-an-iterable,too-many-statements,too-many-locals
 class ORM:
     """Wrapper class for everything I guess..."""
     pool: asyncpg.pool.Pool
@@ -150,7 +150,7 @@ class ORM:
                     fields = [k for k in self._columns.keys() if k not in pkeys]
                 else:
                     fields = [k for k in self._columns.keys() if k in _keys and k not in pkeys]
-                
+
                 if not properties:
                     if not pkeys:
                         raise ValueError("properties must be passed to update() if there is no primary key!")
@@ -224,13 +224,13 @@ class ORM:
         tables, tnames, and on are NOT injection safe!
         """
         if len(tables) != (len(join_on) + 1) or len(tables) != len(tnames):
-            raise TypeError("tables not same length as join_on") 
+            raise TypeError("tables not same length as join_on")
 
         qs_tables = ",'' AS \".\",".join(f'{t}.*' for t in tnames)
         qs_joins = ""
         for table, tname, on in zip(tables[1:], tnames[1:], join_on):
             qs_joins += f"INNER JOIN {table.table_name()} AS {tname} ON ({on}) "
-        
+
         qs_where = ""
         if where:
             qs_where = f"WHERE {where}"
@@ -239,7 +239,7 @@ class ORM:
         qs = f"SELECT {qs_tables} FROM {tables[0].table_name()} AS {tnames[0]} {qs_joins} {qs_where} {addn_sql}"
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(qs, *params)
-        
+
         ret = []
         for row in rows:
             t_idx = 0
@@ -286,9 +286,5 @@ class ORM:
     async def close(self):
         """Shuts down the asyncpg pool."""
         await self.pool.close()
-
-    
-
-
 
 orm = ORM()

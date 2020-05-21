@@ -1,6 +1,8 @@
+"""Used to annotate table types."""
 import typing
 
 class Column:
+    """Allows for custom sql types/options."""
     def __init__(self, sql):
         self.sql = sql
 
@@ -8,9 +10,11 @@ class Column:
 if typing.TYPE_CHECKING:
     # pylint: disable=unused-argument
     def varchar(length: int) -> typing.Type[str]:
+        """length: length of varchar"""
         return str
 else:
     def varchar(length: int) -> Column:
+        """length: length of varchar"""
         return Column(f'varchar({length})')
 
 if typing.TYPE_CHECKING:
