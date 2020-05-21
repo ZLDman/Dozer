@@ -647,7 +647,7 @@ class Moderation(Cog):
         e.color = discord.Color.blurple()
         e.title = f"Server-specific bot settings for {guild.name}"
         e.description = f"To change these settings, see `{ctx.prefix}help serverconfig` for details."
-        e.set_image(url=ctx.guild.icon_url)
+        e.set_thumbnail(url=ctx.guild.icon_url)
         config = await self.guild_config.query_one(guild_id=guild.id)
         if not config:
             config = GuildConfig.make_defaults(guild)
