@@ -7,6 +7,7 @@ import discord
 from discord.ext.commands import NotOwner
 
 from ._utils import *
+from ..asyncdb.orm import orm
 
 logger = logging.getLogger("dozer")
 
@@ -16,14 +17,10 @@ class Development(Cog):
     Commands useful for developing the bot.
     These commands are restricted to bot developers.
     """
-    def __init__(self, bot):
-        super().__init__(bot)
-        self.eval_globals = {}
-        for module in ('asyncio', 'collections', 'discord', 'inspect', 'itertools'):
-            self.eval_globals[module] = __import__(module)
-        self.eval_globals['__builtins__'] = __import__('builtins')
-        for attr in ('line_print',):
-            self.eval_globals[attr] = getattr(self, attr)
+    eval_globals = {}
+    for module in ('asyncio', 'collections', 'discord', 'inspect', 'itertools'):
+        eval_globals[module] = __import__(module)
+    eval_globals['__builtins__'] = __import__('builtins')
 
     def cog_check(self, ctx):  # All of this cog is only available to devs
         if ctx.author.id not in ctx.bot.config['developers']:
@@ -54,8 +51,9 @@ class Development(Cog):
         """Reloads a cog."""
         extension = 'dozer.cogs.' + cog
         msg = await ctx.send('Reloading extension %s' % extension)
-        self.bot.unload_extension(extension)
-        self.bot.load_extension(extension)
+        self.bot.reload_extension(extension)
+        # needs to be run otherwise cog tables won't have necessary runtime attrs
+        await orm.Model.create_all_tables()
         await msg.edit(content='Reloaded extension %s' % extension)
 
     reload.example_usage = """

@@ -1,6 +1,5 @@
 # pylint: skip-file
 from discord.ext.commands import has_permissions, bot_has_permissions, BucketType, cooldown
-from .. import db
 from ._utils import *
 import discord
 import random

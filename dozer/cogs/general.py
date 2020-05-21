@@ -5,7 +5,6 @@ import discord
 from discord.ext.commands import BadArgument, cooldown, BucketType, Group, has_permissions
 
 from ._utils import *
-from .. import db
 
 
 class General(Cog):
@@ -91,20 +90,32 @@ class General(Cog):
 
     async def _help_command(self, ctx, command):
         """Gets the help message for one command."""
-        info = discord.Embed(title='Command: {}{} {}'.format(ctx.prefix, "|".join([command.name] + command.aliases), command.signature), description=command.help or (
-            None if command.example_usage else 'No information provided.'), color=discord.Color.blue())
+        if command.aliases:
+            fqn = f"{command.full_parent_name}[{'|'.join([command.name] + list(command.aliases))}]"
+        else:
+            fqn = command.qualified_name
+        info = discord.Embed(title='Command: {}{} {}'.format(ctx.prefix, fqn, command.signature),
+                             description=command.help or (None if command.example_usage else 'No information provided.'),
+                             color=discord.Color.blue())
         usage = command.example_usage
         if usage is not None:
             info.add_field(name='Usage', value=usage.format(prefix=ctx.prefix, name=ctx.invoked_with), inline=False)
         info.set_footer(text='{} Help | {!r} command | Info'.format(self.name, command.qualified_name))
-        await self._show_help(ctx, info, 'Subcommands: {prefix}{signature}', '', '{command.qualified_name!r} command',
-                              command.commands if isinstance(command, Group) else set(), command=command, signature=command.signature)
+
+        # need to figure out how to walk command.commands correctly
+        def all_subcommands(cmd):
+            if not isinstance(cmd, Group):
+                return set()
+            return cmd.commands | set.union(*[all_subcommands(c) for c in cmd.commands])
+
+        await self._show_help(ctx, info, 'Subcommands: {prefix}{name} {signature}', '', '{command.qualified_name!r} command',
+                              all_subcommands(command), command=command, name=command.qualified_name, signature=command.signature)
 
     async def _help_cog(self, ctx, cog):
         """Gets the help message for one cog."""
         await self._show_help(ctx, None, 'Category: {cog_name}', inspect.cleandoc(cog.__doc__ or ''),
                               '{cog_name!r} category',
-                              (command for command in ctx.bot.commands if command.instance is cog),
+                              (command for command in ctx.bot.commands if command.cog is cog),
                               cog_name=type(cog).__name__)
 
     async def _show_help(self, ctx, start_page, title, description, footer, commands, **format_args):
@@ -113,7 +124,7 @@ class General(Cog):
         footer = '{} Help | {} | Page {}'.format(self.name, footer, '{page_num} of {len_pages}')
         # Page info is inserted as a parameter so page_num and len_pages aren't evaluated now
         if commands:
-            command_chunks = list(chunk(sorted(commands, key=lambda cmd: cmd.name), 4))
+            command_chunks = list(chunk(sorted(commands, key=lambda cmd: cmd.qualified_name), 4))
             format_args['len_pages'] = len(command_chunks)
             pages = []
             for page_num, page_commands in enumerate(command_chunks):
@@ -127,8 +138,13 @@ class General(Cog):
                             ctx, command)
                     else:
                         embed_value = 'No information provided.'
-                    cmd_names = "|".join([command.name] + command.aliases) + " "
-                    page.add_field(name=ctx.prefix + cmd_names + command.signature, value=embed_value, inline=False)
+                    if command.aliases:
+                        cmd_names = "|".join([command.name] + list(command.aliases))
+                        page.add_field(name=f"{ctx.prefix}{command.full_parent_name}[{cmd_names}] {command.signature}", value=embed_value,
+                                       inline=False)
+                    else:
+                        page.add_field(name=f"{ctx.prefix}{command.qualified_name} {command.signature}", value=embed_value, inline=False)
+
                 page.set_footer(text=footer.format(**format_args))
                 pages.append(page)
 
@@ -193,52 +209,27 @@ class General(Cog):
         """
         Generates a set number of single use invites.
         """
-        with db.Session() as session:
-            settings = session.query(WelcomeChannel).filter_by(id=ctx.guild.id).one_or_none()
-            if settings is None:
+        #settings = session.query(WelcomeChannel).filter_by(id=ctx.guild.id).one_or_none()
+        config = await self.bot.cogs['Moderation'].guild_config.query_one(guild_id=ctx.guild.id)
+        if config is None or not config.welcome_channel_id:
+            await ctx.send(f"There is no welcome channel set. Please set one using `{ctx.prefix}serverconfig welcome channel` and try again.")
+            return
+        else:
+            invitechannel = ctx.bot.get_channel(config.welcome_channel_id)
+            if invitechannel is None:
                 await ctx.send(
-                    "There is no welcome channel set. Please set one using `{0}welcomeconifg channel` and try again.".format(
-                        ctx.prefix))
+                    f"There was an issue getting your welcome channel Please set it again using `{ctx.prefix}serverconfig welcome channel`.")
                 return
-            else:
-                invitechannel = ctx.bot.get_channel(settings.channel_id)
-                if invitechannel is None:
-                    await ctx.send(
-                        "There was an issue getting your welcome channel. Please set it again using `{0} welcomeconfig channel`.".format(
-                            ctx.prefix))
-                    return
-                text = ""
-                for i in range(int(num)):
-                    invite = await invitechannel.create_invite(max_age=hours * 3600, max_uses=1, unique=True,
-                                                               reason="Autogenerated by {}".format(ctx.author))
-                    text += "Invite {0}: <{1}>\n".format(i + 1, invite.url)
-                await ctx.send(text)
+            text = ""
+            for i in range(int(num)):
+                invite = await invitechannel.create_invite(max_age=hours * 3600, max_uses=1, unique=True,
+                                                           reason="Autogenerated by {}".format(ctx.author))
+                text += "Invite {0}: <{1}>\n".format(i + 1, invite.url)
+            await ctx.send(text)
 
     invites.example_usage = """
     `{prefix}invtes 5` - Generates 5 single use invites.
     `{prefix}invites 2 12` Generates 2 single use invites that last for 12 hours.
-    """
-
-    @command()
-    @has_permissions(administrator=True)
-    async def welcomeconfig(self, ctx, *, welcome_channel: discord.TextChannel):
-        """
-        Sets the new member channel for this guild.
-        """
-        if welcome_channel.guild != ctx.guild:
-            await ctx.send("That channel is not in this guild.")
-            return
-        with db.Session() as Session:
-            settings = Session.query(WelcomeChannel).filter_by(id=ctx.guild.id).one_or_none()
-            if settings is None:
-                settings = WelcomeChannel(id=ctx.guild.id, channel_id=welcome_channel.id)
-                Session.add(settings)
-            else:
-                settings.member_role = welcome_channel.id
-        await ctx.send("Welcome channel set to {}".format(welcome_channel.mention))
-
-    welcomeconfig.example_usage = """
-    `{prefix}welcomeconfig #new-members` - Sets the invite channel to #new-members.
     """
 
 
@@ -246,10 +237,3 @@ def setup(bot):
     """Adds the general cog to the bot"""
     bot.remove_command('help')
     bot.add_cog(General(bot))
-
-
-class WelcomeChannel(db.DatabaseObject):
-    """Maintains a list of channels for welcome messages"""
-    __tablename__ = 'welcome_channel'
-    id = db.Column(db.BigInteger, primary_key=True)
-    channel_id = db.Column(db.BigInteger, nullable=True)

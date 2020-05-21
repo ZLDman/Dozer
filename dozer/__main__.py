@@ -5,8 +5,7 @@ import os
 import sys
 import asyncio
 import uvloop
-from .db import db_init
-from . import db
+from .asyncdb.orm import orm
 
 # switch to uvloop for event loops
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -22,7 +21,7 @@ config = {
         'teamdata_url': ''
     },
     'log_level': 'INFO',
-    'db_url': 'sqlite:///dozer.db',
+    'db_url': 'postgres:///dozer',
     'gmaps_key': "PUT GOOGLE MAPS API KEY HERE",
     'tz_url': '',
     'discord_token': "Put Discord API Token here.",
@@ -33,8 +32,6 @@ config_file = 'config.json'
 if os.path.isfile(config_file):
     with open(config_file) as f:
         config.update(json.load(f))
-
-db_init(config['db_url'])
 
 with open('config.json', 'w') as f:
     json.dump(config, f, indent='\t')
@@ -53,7 +50,9 @@ for ext in os.listdir('dozer/cogs'):
     if not ext.startswith(('_', '.')):
         bot.load_extension('dozer.cogs.' + ext[:-3])  # Remove '.py'
 
-db.DatabaseObject.metadata.create_all()
+loop = asyncio.get_event_loop()
+loop.run_until_complete(orm.connect(dsn=config['db_url']))
+loop.run_until_complete(orm.Model.create_all_tables())
 bot.run()
 
 # restart the bot if the bot flagged itself to do so

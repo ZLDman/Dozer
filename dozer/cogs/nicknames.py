@@ -3,7 +3,8 @@ import discord
 from discord.ext.commands import BadArgument, guild_only
 
 from ._utils import *
-from .. import db
+from ..asyncdb.orm import orm
+from ..asyncdb import psqlt
 
 
 class Nicknames(Cog):
@@ -13,15 +14,15 @@ class Nicknames(Cog):
     @guild_only()
     async def savenick(self, ctx, save: bool = None):
         """Sets whether or not a user wants their nickname upon server leave to be saved upon server rejoin."""
-        with db.Session() as session:
-            nick = session.query(NicknameTable).filter_by(user_id=ctx.author.id, guild_id=ctx.guild.id).one_or_none()
-            if nick is None:
-                nick = NicknameTable(user_id=ctx.author.id, guild_id=ctx.guild.id, nickname=ctx.author.nick, enabled=save is None or save)
-                session.add(nick)
-            else:
-                if save is not None:
-                    nick.enabled = save
-            await ctx.send(f"Nickname saving is {'enabled' if nick.enabled else 'disabled'}!")
+        nick = await NicknameTable.select_one(user_id=ctx.author.id, guild_id=ctx.guild.id)
+        if nick is None:
+            nick = NicknameTable(user_id=ctx.author.id, guild_id=ctx.guild.id, nickname=ctx.author.nick, enabled=save is None or save)
+            await nick.insert()
+        else:
+            if save is not None:
+                nick.enabled = save
+                await nick.update()
+        await ctx.send(f"Nickname saving is {'enabled' if nick.enabled else 'disabled'}!")
     savenick.example_usage = """
     `{prefix}savenick False` - disables saving nicknames upon server leave.
     """
@@ -29,33 +30,35 @@ class Nicknames(Cog):
     @Cog.listener()
     async def on_member_join(self, member):
         """Handles adding the nickname back on server join."""
-        with db.Session() as session:
-            nick = session.query(NicknameTable).filter_by(user_id=member.id, guild_id=member.guild.id).one_or_none()
-            if not nick or not nick.enabled or not member.guild.me.guild_permissions.manage_nicknames or member.top_role >= member.guild.me.top_role:
-                return
-            await member.edit(nick=nick.nickname)
+        if 'silent' in self.bot.config and self.bot.config['silent']:
+            return
+        nick = await NicknameTable.select_one(user_id=member.id, guild_id=member.guild.id)
+        if not nick or not nick.enabled or not member.guild.me.guild_permissions.manage_nicknames or member.top_role >= member.guild.me.top_role:
+            return
+        await member.edit(nick=nick.nickname)
 
     @Cog.listener()
     async def on_member_remove(self, member):
         """Handles saving the nickname on server leave."""
-        with db.Session() as session:
-            nick = session.query(NicknameTable).filter_by(user_id=member.id, guild_id=member.guild.id).one_or_none()
-            if nick is None:
-                nick = NicknameTable(user_id=member.id, guild_id=member.guild.id, nickname=member.nick, enabled=True)
-                session.add(nick)
-            else:
-                if not nick.enabled:
-                    return
-                nick.nickname = member.nick
+        nick = await NicknameTable.select_one(user_id=member.id, guild_id=member.guild.id)
+        if nick is None:
+            nick = NicknameTable(user_id=member.id, guild_id=member.guild.id, nickname=member.nick, enabled=True)
+            await nick.insert()
+        else:
+            if not nick.enabled:
+                return
+            nick.nickname = member.nick
+            await nick.update()
 
 
-class NicknameTable(db.DatabaseObject):
+class NicknameTable(orm.Model):
     """Maintains a record of saved nicknames for various users."""
     __tablename__ = "nicknames"
-    user_id = db.Column(db.BigInteger, primary_key=True)
-    guild_id = db.Column(db.BigInteger, primary_key=True)
-    nickname = db.Column(db.String, nullable=True)
-    enabled = db.Column(db.Boolean)
+    __primary_key__ = ('user_id', 'guild_id')
+    user_id: psqlt.bigint
+    guild_id: psqlt.bigint
+    nickname: psqlt.text
+    enabled: psqlt.boolean
 
 
 def setup(bot):

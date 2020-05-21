@@ -1,6 +1,7 @@
 git+git://github.com/guineawheek/aiotoa.git#egg=aiotoa
 discord.py
-sqlalchemy
+asyncpg
+discord.py[voice]
 aiotba
 async_timeout
 googlemaps

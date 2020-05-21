@@ -3,10 +3,11 @@
 import discord
 import discord.utils
 from discord.ext.commands import cooldown, BucketType, has_permissions, BadArgument, MissingPermissions
-from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from ._utils import *
-from .. import db
+from ..asyncdb.orm import orm
+from ..asyncdb import psqlt
+
 
 
 class Roles(Cog):
@@ -21,41 +22,52 @@ class Roles(Cog):
                 if await self.ctx_purge(ctx):
                     await ctx.send("Purged missing roles")
 
-    @Cog.listener()
+    @staticmethod
+    def normalize(name):
+        """Normalizes a role for consistency in the DB."""
+        return name.strip().casefold()
+
+    @Cog.listener('on_member_join')
     async def on_member_join(self, member):
         """Restores a member's roles when they join if they have joined before."""
+        if 'silent' in self.bot.config and self.bot.config['silent']:
+            return
+
         me = member.guild.me
         top_restorable = me.top_role.position if me.guild_permissions.manage_roles else 0
-        with db.Session() as session:
-            restore = session.query(MissingMember).filter_by(guild_id=member.guild.id,
-                                                             member_id=member.id).one_or_none()
-            if restore is None:
-                return  # New member - nothing to restore
 
-            valid, cant_give, missing = set(), set(), set()
-            for missing_role in restore.missing_roles:
-                role = member.guild.get_role(missing_role.role_id)
-                if role is None:  # Role with that ID does not exist
-                    missing.add(missing_role.role_name)
-                elif role.position > top_restorable:
-                    cant_give.add(role.name)
-                else:
-                    valid.add(role)
+        missing_roles = await MissingRole.select(guild_id=member.guild.id, member_id=member.id)
+        # no missing rules to return
+        if not missing_roles:
+            return
 
-            session.delete(restore)  # Not missing anymore - remove the record to free up the primary key
+        valid, cant_give, missing = set(), set(), set()
+        for missing_role in missing_roles:
+            role = member.guild.get_role(missing_role.role_id)
+            if role is None:  # Role with that ID does not exist
+                missing.add(missing_role.role_name)
+            elif role.position > top_restorable:
+                cant_give.add(role.name)
+            else:
+                valid.add(role)
 
         await member.add_roles(*valid)
         if not missing and not cant_give:
             return
 
-        e = discord.Embed(title='Welcome back to the {} server, {}!'.format(member.guild.name, member),
-                          color=discord.Color.blue())
+        e = discord.Embed(title=f'Welcome back to the {member.guild.name} server, {member}!', color=discord.Color.blue())
         if missing:
             e.add_field(name='I couldn\'t restore these roles, as they don\'t exist.', value='\n'.join(sorted(missing)))
         if cant_give:
             e.add_field(name='I couldn\'t restore these roles, as I don\'t have permission.',
                         value='\n'.join(sorted(cant_give)))
 
+        # let's also make regiving roles atomic...ish.
+        async with orm.acquire() as conn:
+            for missing_role in missing_roles:
+                await missing_role.delete(_conn=conn)
+
+        # mmmm i love questionable code i didn't write.
         send_perms = discord.Permissions()
         send_perms.update(send_messages=True, embed_links=True)
         try:
@@ -65,57 +77,53 @@ class Roles(Cog):
 
         await dest.send(embed=e)
 
-    @Cog.listener()
+    @Cog.listener('on_member_remove')
     async def on_member_remove(self, member):
         """Saves a member's roles when they leave in case they rejoin."""
         guild_id = member.guild.id
         member_id = member.id
-        with db.Session() as session:
-            db_member = MissingMember(guild_id=guild_id, member_id=member_id)
-            session.add(db_member)
+        async with orm.acquire() as conn:
             for role in member.roles[1:]:  # Exclude the @everyone role
-                db_member.missing_roles.append(MissingRole(role_id=role.id, role_name=role.name))
+                await MissingRole(role_id=role.id, role_name=role.name,
+                                  member_id=member_id, guild_id=guild_id).insert(_upsert="ON CONFLICT DO NOTHING", _conn=conn)
 
-    async def giveme_purge(self, rolelist):
+    async def giveme_purge(self, role_id_list):
         """Purges roles in the giveme database that no longer exist"""
-        with db.Session() as session:
-            for role in rolelist:
-                dbrole = session.query(GiveableRole).filter_by(id=role.id).one_or_none()
-                if dbrole is not None:
-                    session.delete(dbrole)
+        if not role_id_list:
+            return
+        async with orm.acquire() as conn:
+            await conn.fetch(f"DELETE FROM {GiveableRole.table_name()} "
+                             f"WHERE role_id=ANY({','.join('$' + str(i + 1) for i in range(len(role_id_list)))})", role_id_list)
 
     async def ctx_purge(self, ctx):
         """Purges all giveme roles that no longer exist in a guild"""
         counter = 0
-        with db.Session() as session:
-            roles = session.query(GiveableRole).filter_by(guild_id=ctx.guild.id)
-            guildroles = []
-            rolelist = []
-            for i in ctx.guild.roles:
-                guildroles.append(i.id)
-            for role in roles:
-                if role.id not in guildroles:
-                    rolelist.append(role)
-                    counter += 1
-        await self.giveme_purge(rolelist)
+        roles = await GiveableRole.select(guild_id=ctx.guild.id)
+        guild_roles = []
+        role_id_list = []
+        for i in ctx.guild.roles:
+            guild_roles.append(i.id)
+        for ent in roles:
+            if ent.role_id not in guild_roles:
+                role_id_list.append(ent.role_id)
+                counter += 1
+        await self.giveme_purge(role_id_list)
         return counter
 
-    @Cog.listener()
+    @Cog.listener("on_guild_role_delete")
     async def on_guild_role_delete(self, role):
         """Automatically delete giveme roles if they are deleted from the guild"""
-        rolelist = [role]
+        rolelist = [role.id]
         await self.giveme_purge(rolelist)
 
     @group(invoke_without_command=True)
     @bot_has_permissions(manage_roles=True)
     async def giveme(self, ctx, *, roles):
         """Give you one or more giveable roles, separated by commas."""
-        norm_names = [self.normalize(name) for name in roles.split(',')]
-        with db.Session() as session:
-            giveable_ids = [tup[0] for tup in
-                            session.query(GiveableRole.id).filter(GiveableRole.guild_id == ctx.guild.id,
-                                                                  GiveableRole.norm_name.in_(norm_names)).all()]
-            valid = set(role for role in ctx.guild.roles if role.id in giveable_ids)
+        norm_names = set(self.normalize(name) for name in roles.split(','))
+
+        giveable_ids = set(gr.role_id for gr in await GiveableRole.select(guild_id=ctx.guild.id))
+        valid = set(role for role in ctx.guild.roles if role.id in giveable_ids and self.normalize(role.name) in norm_names)
 
         already_have = valid & set(ctx.author.roles)
         given = valid - already_have
@@ -149,64 +157,61 @@ class Roles(Cog):
         counter = await self.ctx_purge(ctx)
         await ctx.send("Purged {} role(s)".format(counter))
 
-    @giveme.command()
+    @cooldown(1, 10, BucketType.channel)
+    @giveme.group(name='list', invoke_without_command=True)
+    @bot_has_permissions(manage_roles=True)
+    async def list_roles(self, ctx):
+        """Lists all giveable roles for this server."""
+        names = [ctx.guild.get_role(ent.role_id).name for ent in await GiveableRole.select(guild_id=ctx.guild.id)]
+        e = discord.Embed(title='Roles available to self-assign', color=discord.Color.blue())
+        e.description = '\n'.join(sorted(names, key=str.casefold))
+        await ctx.send(embed=e)
+
+    list_roles.example_usage = """
+    `{prefix}giveme list` - lists all giveable roles
+    """
+
+    @list_roles.command()
     @bot_has_permissions(manage_roles=True)
     @has_permissions(manage_guild=True)
-    async def add(self, ctx, *, name):
+    async def add(self, ctx, role: discord.Role):
         """Makes an existing role giveable, or creates one if it doesn't exist. Name must not contain commas.
         Similar to create, but will use an existing role if one exists."""
-        if ',' in name:
+        if ',' in role.name:
             raise BadArgument('giveable role names must not contain commas!')
-        norm_name = self.normalize(name)
-        with db.Session() as session:
-            settings = session.query(GuildSettings).filter_by(id=ctx.guild.id).one_or_none()
-            if settings is None:
-                settings = GuildSettings(id=ctx.guild.id)
-                session.add(settings)
-            if norm_name in (giveable.norm_name for giveable in settings.giveable_roles):
-                raise BadArgument('that role already exists and is giveable!')
-            candidates = [role for role in ctx.guild.roles if self.normalize(role.name) == norm_name]
+        norm_name = self.normalize(role.name)
 
-            if not candidates:
-                role = await ctx.guild.create_role(name=name, reason='Giveable role created by {}'.format(ctx.author))
-            elif len(candidates) == 1:
-                role = candidates[0]
-            else:
-                raise BadArgument('{} roles with that name exist!'.format(len(candidates)))
-            settings.giveable_roles.append(GiveableRole.from_role(role))
-        await ctx.send(
-            'Role "{0}" added! Use `{1}{2} {0}` to get it!'.format(role.name, ctx.prefix, ctx.command.parent))
+        if await GiveableRole.select_one(role_id=role.id):
+            raise BadArgument('that role already exists and is giveable!')
+        candidates = [role for role in ctx.guild.roles if self.normalize(role.name) == norm_name]
+
+        if len(candidates) > 1:
+            raise BadArgument('{} roles with that name exist!'.format(len(candidates)))
+
+        await GiveableRole(role_id=role.id, guild_id=ctx.guild.id).insert()
+        await ctx.send(f'Role "{role.name}" added! Use `{ctx.prefix}giveme {role.name}` to get it!')
 
     add.example_usage = """
-    `{prefix}giveme add Java` - creates or finds a role named "Java" and makes it giveable
+    `{prefix}giveme list add Java` - creates or finds a role named "Java" and makes it giveable
     `{prefix}giveme Java` - gives you the Java role that was just found or created
     """
 
-    @giveme.command()
+    @list_roles.command(name="remove")
     @bot_has_permissions(manage_roles=True)
     @has_permissions(manage_guild=True)
-    async def create(self, ctx, *, name):
-        """Create a giveable role. Name must not contain commas.
-        Similar to add, but will always create a new role."""
-        if ',' in name:
-            raise BadArgument('giveable role names must not contain commas!')
-        norm_name = self.normalize(name)
-        with db.Session() as session:
-            settings = session.query(GuildSettings).filter_by(id=ctx.guild.id).one_or_none()
-            if settings is None:
-                settings = GuildSettings(id=ctx.guild.id)
-                session.add(settings)
-            if norm_name in (giveable.norm_name for giveable in settings.giveable_roles):
-                raise BadArgument('that role already exists and is giveable!')
+    async def removefromlist(self, ctx, role: discord.Role):
+        """Deletes and removes a giveable role."""
 
-            role = await ctx.guild.create_role(name=name, reason='Giveable role created by {}'.format(ctx.author))
-            settings.giveable_roles.append(GiveableRole.from_role(role))
-        await ctx.send(
-            'Role "{0}" created! Use `{1}{2} {0}` to get it!'.format(role.name, ctx.prefix, ctx.command.parent))
+        norm_name = self.normalize(role.name)
+        ent = await GiveableRole.select_one(role_id=role.id)
+        if ent is None:
+            raise BadArgument('that role does not exist or is not giveable!')
+        await ent.delete()
 
-    create.example_usage = """
-    `{prefix}giveme create Python` - creates a role named "Python" and makes it giveable
-    `{prefix}giveme Python` - gives you the Python role that was just created
+        await ctx.send('Role "{0}" deleted from list!'.format(role.name))
+
+    removefromlist.example_usage = """
+    `{prefix}giveme list remove Java` - removes the role "Java" from the list of giveable roles but does not remove it from the server or members who have it 
     """
 
     @giveme.command()
@@ -214,11 +219,8 @@ class Roles(Cog):
     async def remove(self, ctx, *, roles):
         """Removes multiple giveable roles from you. Names must be separated by commas."""
         norm_names = [self.normalize(name) for name in roles.split(',')]
-        with db.Session() as session:
-            query = session.query(GiveableRole.id).filter(GiveableRole.guild_id == ctx.guild.id,
-                                                          GiveableRole.norm_name.in_(norm_names))
-            removable_ids = [tup[0] for tup in query.all()]
-            valid = set(role for role in ctx.guild.roles if role.id in removable_ids)
+        giveable_ids = set(gr.role_id for gr in await GiveableRole.select(guild_id=ctx.guild.id))
+        valid = set(role for role in ctx.guild.roles if role.id in giveable_ids and self.normalize(role.name) in norm_names)
 
         removed = valid & set(ctx.author.roles)
         dont_have = valid - removed
@@ -235,88 +237,13 @@ class Roles(Cog):
         extra = len(norm_names) - len(valid)
         if extra > 0:
             e.add_field(name='{} role(s) could not be found!'.format(extra),
-                        value='Use `{0.prefix}{0.invoked_with} list` to find valid giveable roles!'.format(ctx),
+                        value='Use `{0.prefix}giveme list` to find valid giveable roles!'.format(ctx),
                         inline=False)
         await ctx.send(embed=e)
 
     remove.example_usage = """
     `{prefix}giveme remove Java` - removes the role called "Java" from you (if it can be given with `{prefix}giveme`)
     `{prefix}giveme remove Java, Python` - removes the roles called "Java" and "Python" from you
-    """
-
-    @giveme.command()
-    @bot_has_permissions(manage_roles=True)
-    @has_permissions(manage_guild=True)
-    async def delete(self, ctx, *, name):
-        """Deletes and removes a giveable role."""
-        if ',' in name:
-            raise BadArgument('this command only works with single roles!')
-        norm_name = self.normalize(name)
-        valid_ids = set(role.id for role in ctx.guild.roles)
-        with db.Session() as session:
-            try:
-                role = session.query(GiveableRole).filter(GiveableRole.guild_id == ctx.guild.id,
-                                                          GiveableRole.norm_name == norm_name,
-                                                          GiveableRole.id.in_(valid_ids)).one()
-            except MultipleResultsFound:
-                raise BadArgument('multiple giveable roles with that name exist!')
-            except NoResultFound:
-                raise BadArgument('that role does not exist or is not giveable!')
-            else:
-                session.delete(role)
-        role = ctx.guild.get_role(role.id)  # Not null because we already checked for id in valid_ids
-        await role.delete(reason='Giveable role deleted by {}'.format(ctx.author))
-        await ctx.send('Role "{0}" deleted!'.format(role))
-
-    delete.example_usage = """
-    `{prefix}giveme delete Java` - deletes the role called "Java" if it's giveable (automatically removes it from all members)
-    """
-
-    @cooldown(1, 10, BucketType.channel)
-    @giveme.command(name='list')
-    @bot_has_permissions(manage_roles=True)
-    async def list_roles(self, ctx):
-        """Lists all giveable roles for this server."""
-        with db.Session() as session:
-            names = [tup[0] for tup in session.query(GiveableRole.name).filter_by(guild_id=ctx.guild.id)]
-        e = discord.Embed(title='Roles available to self-assign', color=discord.Color.blue())
-        e.description = '\n'.join(sorted(names, key=str.casefold))
-        await ctx.send(embed=e)
-
-    list_roles.example_usage = """
-    `{prefix}giveme list` - lists all giveable roles
-    """
-
-    @staticmethod
-    def normalize(name):
-        """Normalizes a role for consistency in the DB."""
-        return name.strip().casefold()
-
-    @giveme.command()
-    @bot_has_permissions(manage_roles=True)
-    @has_permissions(manage_guild=True)
-    async def removefromlist(self, ctx, *, name):
-        """Deletes and removes a giveable role."""
-        # Honestly this is the giveme delete command but modified to only delete from the DB
-        if ',' in name:
-            raise BadArgument('this command only works with single roles!')
-        norm_name = self.normalize(name)
-        valid_ids = set(role.id for role in ctx.guild.roles)
-        with db.Session() as session:
-            try:
-                role = session.query(GiveableRole).filter(GiveableRole.guild_id == ctx.guild.id,
-                                                          GiveableRole.norm_name == norm_name,
-                                                          GiveableRole.id.in_(valid_ids)).one()
-            except MultipleResultsFound:
-                raise BadArgument('multiple giveable roles with that name exist!')
-            except NoResultFound:
-                raise BadArgument('that role does not exist or is not giveable!')
-            else:
-                session.delete(role)
-        await ctx.send('Role "{0}" deleted from list!'.format(name))
-
-    delete.example_usage = """
-    `{prefix}giveme removefromlist Java` - removes the role "Java" from the list of giveable roles but does not remove it from the server or members who have it 
     """
 
     @command()
@@ -366,47 +293,23 @@ class Roles(Cog):
     `{prefix}rolecolor Bolb #FCC21B` - set the color of the "Bolb" role to #FCC21B
     """
 
-
-class GuildSettings(db.DatabaseObject):
-    """Represents a guild's settings in the DB"""
-    __tablename__ = 'guilds'
-    id = db.Column(db.BigInteger, primary_key=True)
-    giveable_roles = db.relationship('GiveableRole', back_populates='guild_settings')
-
-
-class GiveableRole(db.DatabaseObject):
+class GiveableRole(orm.Model):
     """Database object for maintaining a list of giveable roles."""
     __tablename__ = 'giveable_roles'
-    id = db.Column(db.BigInteger, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    norm_name = db.Column(db.String(100), nullable=False)
-    guild_id = db.Column(db.BigInteger, db.ForeignKey('guilds.id'))
-    guild_settings = db.relationship('GuildSettings', back_populates='giveable_roles')
+    __primary_key__ = ("role_id",)
 
-    @classmethod
-    def from_role(cls, role):
-        """Creates a GiveableRole record from a discord.Role."""
-        return cls(id=role.id, name=role.name, norm_name=Roles.normalize(role.name))
+    role_id: psqlt.bigint
+    guild_id: psqlt.bigint
 
-
-class MissingMember(db.DatabaseObject):
-    """Required for the relationship with the MissingRole class and table."""
-    __tablename__ = 'missing_members'
-    guild_id = db.Column(db.BigInteger, primary_key=True)
-    member_id = db.Column(db.BigInteger, primary_key=True)
-    missing_roles = db.relationship('MissingRole', back_populates='member', cascade='all, delete, delete-orphan')
-
-
-class MissingRole(db.DatabaseObject):
+class MissingRole(orm.Model):
     """Holds what roles a given member had when they last left the guild."""
     __tablename__ = 'missing_roles'
-    __table_args__ = (
-        db.ForeignKeyConstraint(['guild_id', 'member_id'], ['missing_members.guild_id', 'missing_members.member_id']),)
-    role_id = db.Column(db.BigInteger, primary_key=True)
-    guild_id = db.Column(db.BigInteger)  # Guild ID doesn't have to be primary because role IDs are unique across guilds
-    member_id = db.Column(db.BigInteger, primary_key=True)
-    role_name = db.Column(db.String(100), nullable=False)
-    member = db.relationship('MissingMember', back_populates='missing_roles')
+    __primary_key__ = ('role_id', 'member_id')
+
+    role_id: psqlt.bigint
+    guild_id: psqlt.bigint
+    member_id: psqlt.bigint
+    role_name: psqlt.varchar(100)
 
 
 def setup(bot):
