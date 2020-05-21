@@ -32,7 +32,7 @@ class Moderation(Cog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.guild_config = configcache.AsyncConfigCache(GuildConfig)
+        self.guild_config = GuildConfig.get_cache() #configcache.AsyncConfigCache(GuildConfig)
 
     """=== Helper functions ==="""
 
@@ -722,17 +722,7 @@ class Moderation(Cog):
     @has_permissions(administrator=True)
     async def modlogconfig(self, ctx, channel_mentions: discord.TextChannel):
         """Set the modlog channel for a server by passing the channel id"""
-        config = await self.guild_config.query_one(guild_id=ctx.guild.id)
-
-        if config is not None:
-            config.guild_name = ctx.guild.name
-            config.mod_log_channel_id = channel_mentions.id
-            await config.update()
-        else:
-            config = GuildConfig.make_defaults(ctx.guild)
-            config.mod_log_channel_id = channel_mentions.id
-            await config.insert()
-        self.guild_config.invalidate_entry(guild_id=ctx.guild.id)
+        await GuildConfig.update_guild(ctx.guild, mod_log_channel_id=channel_mentions.id)
         await ctx.send(ctx.message.author.mention + ', modlog settings configured!')
     modlogconfig.example_usage = """
     `{prefix}serverconfig modlog #mod-log` - set a channel named #mod-log to log moderation actions
@@ -744,26 +734,17 @@ class Moderation(Cog):
     async def nmconfig(self, ctx, channel_mention: discord.TextChannel, role: discord.Role, *, message):
         """Sets the config for the new members channel"""
 
-        config = await self.guild_config.query_one(guild_id=ctx.guild.id)
-        if config is not None:
-            config.new_members_channel_id = channel_mention.id
-            config.new_members_role_id = role.id
-            config.new_members_message = message.casefold()
-            await config.update()
-        else:
-            config = GuildConfig.make_defaults(ctx.guild)
-            config.new_members_channel_id = channel_mention.id
-            config.new_members_role_id = role.id
-            config.new_members_message = message.casefold()
-            await config.insert()
-        self.guild_config.invalidate_entry(guild_id=ctx.guild.id)
+        await GuildConfig.update_guild(ctx.guild, new_members_channel_id=channel_mention.id, 
+                                       new_members_role_id=role.id, new_members_message=message.casefold())
 
         role_name = role.name
         await ctx.send(
             "New Member Channel configured as: {channel}. Role configured as: {role}. Message: {message}".format(
                 channel=channel_mention.name, role=role_name, message=message))
+
     nmconfig.example_usage = """
-    `{prefix}serverconfig newmem #new_members Member I have read the rules and regulations` - Configures the #new_members channel so if someone types "I have read the rules and regulations" it assigns them the Member role. 
+    `{prefix}serverconfig newmem #new_members Member I have read the rules and regulations`""" +\
+    """ - Configures the #new_members channel so if someone types "I have read the rules and regulations" it assigns them the Member role. 
     `{prefix}serverconfig unset newmem` - Clear any settings back to default
     """
 
@@ -777,16 +758,9 @@ class Moderation(Cog):
         if member_role >= ctx.author.top_role:
             raise BadArgument('member role cannot be higher than your top role!')
 
-        config = await self.guild_config.query_one(guild_id=ctx.guild.id)
-        if config is None:
-            config = GuildConfig.make_defaults(ctx.guild)
-            config.member_role_id = member_role.id
-            await config.insert()
-        else:
-            config.member_role = member_role.id
-            await config.update()
-        self.guild_config.invalidate_entry(guild_id=ctx.guild.id)
+        await GuildConfig.update_guild(ctx.guild, member_role_id=member_role.id)
         await ctx.send('Member role set as `{}`.'.format(member_role.name))
+
     memberconfig.example_usage = """
     `{prefix}serverconfig memberrole Members` - set a role called "Members" as the member role
     `{prefix}serverconfig memberrole @everyone` - set the default role as the member role
@@ -808,16 +782,9 @@ class Moderation(Cog):
         if link_role >= ctx.author.top_role:
             raise BadArgument('Link role cannot be higher than your top role!')
 
-        config = await self.guild_config.query_one(guild_id=ctx.guild.id)
-        if config is None:
-            config = GuildConfig.make_defaults(ctx.guild)
-            config.links_role_id = link_role.id
-            await config.insert()
-        else:
-            config.links_role_id = link_role.id
-            await config.update()
-        self.guild_config.invalidate_entry(guild_id=ctx.guild.id)
+        await GuildConfig.update_guild(ctx.guild, links_role_id=link_role.id)
         await ctx.send(f'Link role set as `{link_role.name}`.')
+
     linkscrubconfig.example_usage = """
     `{prefix}serverconfig links Links` - set a role called "Links" as the link role
     `{prefix}serverconfig links @everyone` - set the default role as the link role
@@ -832,16 +799,9 @@ class Moderation(Cog):
     @has_permissions(administrator=True)
     async def memberlogconfig(self, ctx, channel_mentions: discord.TextChannel):
         """Set the join/leave channel for a server by passing a channel mention"""
-        config = await self.guild_config.query_one(guild_id=ctx.guild.id)
-        if config is not None:
-            config.member_log_channel_id = channel_mentions.id
-            await config.update()
-        else:
-            config = GuildConfig.make_defaults(ctx.guild)
-            config.member_log_channel_id = channel_mentions.id
-            await config.insert()
-        self.guild_config.invalidate_entry(guild_id=ctx.guild.id)
+        await GuildConfig.update_guild(ctx.guild, member_log_channel_id=channel_mentions.id)
         await ctx.send(ctx.message.author.mention + ', memberlog settings configured!')
+
     memberlogconfig.example_usage = """
     `{prefix}serverconfig memberlog #join-leave-logs` - set a channel named #join-leave-logs to log joins/leaves 
     `{prefix}serverconfig unset memberlog` - disable this behavior
@@ -851,16 +811,9 @@ class Moderation(Cog):
     @has_permissions(administrator=True)
     async def messagelogconfig(self, ctx, channel_mentions: discord.TextChannel):
         """Set the modlog channel for a server by passing the channel id"""
-        config = await self.guild_config.query_one(guild_id=ctx.guild.id)
-        if config is not None:
-            config.message_log_channel_id = channel_mentions.id
-            await config.update()
-        else:
-            config = GuildConfig.make_defaults(ctx.guild)
-            config.message_log_channel_id = channel_mentions.id
-            await config.insert()
-        self.guild_config.invalidate_entry(guild_id=ctx.guild.id)
+        await GuildConfig.update_guild(ctx.guild, message_log_channel_id=channel_mentions.id)
         await ctx.send(ctx.message.author.mention + ', messagelog settings configured!')
+
     messagelogconfig.example_usage = """
     `{prefix}serverconfig messagelog #edit-delete-logs` - set a channel named #edit-delete-logs to log message edits/deletions
     `{prefix}serverconfig unset messagelog` - disable this behavior
@@ -875,15 +828,8 @@ class Moderation(Cog):
         if welcome_channel.guild != ctx.guild:
             await ctx.send("That channel is not in this guild.")
             return
-        config = await self.guild_config.query_one(guild_id=ctx.guild.id)
-        if config is not None:
-            config.welcome_channel_id = welcome_channel.id
-            await config.update()
-        else:
-            config = GuildConfig.make_defaults(ctx.guild)
-            config.welcome_channel_id = welcome_channel.id
-            await config.insert()
-        self.guild_config.invalidate_entry(guild_id=ctx.guild.id)
+
+        await GuildConfig.update_guild(ctx.guild, welcome_channel_id=welcome_channel.id)
         await ctx.send("Welcome channel set to {}".format(welcome_channel.mention))
 
     welcomeconfig.example_usage = """
@@ -947,6 +893,7 @@ class GuildConfig(orm.Model):
     """Stores guild specific general configuration. """
     __tablename__ = "guild_config"
     __primary_key__ = ("guild_id",)
+    _cache = None
     guild_id: psqlt.bigint
     guild_name: psqlt.text
 
@@ -971,6 +918,32 @@ class GuildConfig(orm.Model):
         gc.member_role_id = guild.id
 
         return gc
+
+    @classmethod
+    def get_cache(cls):
+        """create or return a new cache"""
+        if not cls._cache:
+            cls._cache = configcache.AsyncConfigCache(GuildConfig)
+        return cls._cache
+
+    @classmethod
+    async def update_guild(cls, guild: discord.Guild, **kwargs):
+        """update settings for a guild"""
+        config = await cls._cache.query_one(guild_id=guild.id)
+
+        ins = False
+        if config is None:
+            config = GuildConfig.make_defaults(guild)
+            ins = True
+        config.guild_name = guild.name
+
+        for k, v in kwargs.items():
+            setattr(config, k, v)
+        if ins:
+            await config.insert()
+        else:
+            await config.update()
+        cls._cache.invalidate_entry(guild_id=guild.id)
 
 def setup(bot):
     """Adds the moderation cog to the bot."""
