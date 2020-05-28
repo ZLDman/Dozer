@@ -35,7 +35,7 @@ class General(Cog):
     """
 
     @cooldown(1, 10, BucketType.channel)
-    @command(name='help', aliases=['about'])
+    @command(name='help', aliases=['about', 'plowie'])
     @bot_has_permissions(add_reactions=True, embed_links=True,
                          read_message_history=True)  # Message history is for internals of paginate()
     async def base_help(self, ctx, *target):
@@ -67,7 +67,9 @@ class General(Cog):
 
     async def _help_all(self, ctx):
         """Gets the help message for all commands."""
-        info = discord.Embed(title=f'{self.name}: Info', description='The guild management bot for the FTC server',
+        info = discord.Embed(title=f'{self.name}: Info',
+                             description='The guild management bot for the FTC server' if self.name == "FTC Server Dozer" else
+                             'A guild management bot for FIRST Discord servers',
                              color=discord.Color.blue())
         info.set_thumbnail(url=self.bot.user.avatar_url)
         info.add_field(name='About',
@@ -191,13 +193,16 @@ class General(Cog):
         Display the bot's invite link.
         The generated link gives all permissions the bot requires. If permissions are removed, some commands will be unusable.
         """
-        perms = 0
+        perms = 1073081847
         for cmd in ctx.bot.walk_commands():
             perms |= cmd.required_permissions.value
-        await ctx.send("Here's an invite link for the public version of this bot, "
-                       "[Plowie](https://discordapp.com/oauth2/authorize?client_id=474456308813266945"
-                       "&scope=bot&permissions=268525655)")
-        #await ctx.send('<{}>'.format(discord.utils.oauth_url(ctx.me.id, discord.Permissions(perms))))
+
+        if self.name == "FTC Server Dozer":
+            await ctx.send("Here's an invite link for the public version of this bot, "
+                           "[Plowie](https://discordapp.com/oauth2/authorize?client_id=474456308813266945"
+                           "&scope=bot&permissions=1073081847)")
+        else:
+            await ctx.send('<{}>'.format(discord.utils.oauth_url(ctx.me.id, discord.Permissions(perms))))
     invite.example_usage = """
     `{prefix}invite` - display the bot's invite link. 
     """
