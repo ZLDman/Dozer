@@ -10,3 +10,5 @@ geopy
 fuzzywuzzy
 beautifulsoup4
 uvloop
+python-Levenshtein
+python-dateutil
