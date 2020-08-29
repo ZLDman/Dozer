@@ -26,8 +26,7 @@ ALTER TABLE deafens RENAME COLUMN id TO member_id;
 ALTER TABLE deafens RENAME COLUMN guild TO guild_id;
 
 -- unify the guild config tables
-CREATE TABLE guild_config AS SELECT guilds.id as guild_id, 
-    coalesce(modlogconfig.name, memberlogconfig.name, messagelogconfig.name) AS guild_name,
+CREATE TABLE guild_config AS SELECT guilds.id as guild_id, coalesce(modlogconfig.name, memberlogconfig.name, messagelogconfig.name) AS guild_name,
     modlogconfig.modlog_channel as mod_log_channel_id, 
 
     member_roles.member_role as member_role_id,

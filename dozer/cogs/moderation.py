@@ -32,7 +32,7 @@ class Moderation(Cog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.guild_config = GuildConfig.get_cache() #configcache.AsyncConfigCache(GuildConfig)
+        self.guild_config = GuildConfig.get_cache(bot) #configcache.AsyncConfigCache(GuildConfig)
 
     """=== Helper functions ==="""
 
@@ -838,6 +838,26 @@ class Moderation(Cog):
     `{prefix}serverconfig welcome #new-members` - Sets the invite channel to #new-members.
     """
 
+class GuildConfigCache(configcache.AsyncConfigCache):
+    """we need an override so that query_one always returns a guild"""
+
+    def __init__(self, bot):
+        super().__init__(GuildConfig)
+        self.bot = bot
+
+    # override
+    async def query_one(self, **kwargs):
+        """always return a guild (and insert a new one if needed)"""
+        if "guild_id" not in kwargs:
+            raise ValueError("you probably want a guild_id defined")
+        guild_id = kwargs["guild_id"]
+        config = await super().query_one(**kwargs)
+        if config is None:
+            config = GuildConfig.make_defaults(self.bot.get_guild(guild_id))
+            await config.insert(_upsert="ON CONFLICT DO NOTHING")
+            self.invalidate_entry(guild_id=guild_id)
+        return config
+
 
 # ALTER TABLE mutes RENAME COLUMN id TO member_id
 # ALTER TABLE deafens RENAME COLUMN id TO member_id
@@ -923,10 +943,11 @@ class GuildConfig(orm.Model):
         return gc
 
     @classmethod
-    def get_cache(cls):
+    def get_cache(cls, bot):
         """create or return a new cache"""
         if not cls._cache:
-            cls._cache = configcache.AsyncConfigCache(GuildConfig)
+            cls._cache = GuildConfigCache(bot)
+            #configcache.AsyncConfigCache(GuildConfig)
         return cls._cache
 
     @classmethod

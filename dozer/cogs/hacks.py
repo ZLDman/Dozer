@@ -21,6 +21,8 @@ class Hacks(Cog):
                 await member.send("""Welcome to the FTC Discord! Please read through #server-rules-info for information on how to access the rest of the server!""")
             except discord.Forbidden:
                 self.bot.logger.info(f"@{member} has blocked me?")
+        else:
+            return
         logs = self.bot.get_channel(JOINED_LOGS_ID)
         res = f"```New user {member} ({member.id})\nInvite summary:\n"
         for i in await member.guild.invites():
