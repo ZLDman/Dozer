@@ -49,8 +49,6 @@ if os.path.isfile(config_file):
 with open('config.json', 'w') as f:
     json.dump(config, f, indent='\t')
 
-asyncio.get_event_loop().run_until_complete(db_init(config['db_url']))
-
 if 'discord_token' not in config:
     sys.exit('Discord token must be supplied in configuration - please add one to config.json')
 
