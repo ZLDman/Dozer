@@ -61,7 +61,11 @@ class Dozer(commands.Bot):
     _global_cooldown = commands.Cooldown(1, 1, commands.BucketType.user)  # One command per second per user
 
     def __init__(self, config):
-        super().__init__(command_prefix=config['prefix'])
+        intents = discord.Intents.default()
+        intents.members = True
+        intents.presences = True
+
+        super().__init__(command_prefix=config['prefix'], intents=intents)
         self.config = config
         self.logger = dozer_logger
         self._restarting = False
