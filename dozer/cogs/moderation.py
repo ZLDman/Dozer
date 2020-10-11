@@ -158,7 +158,7 @@ class Moderation(Cog):
             else:
                 user = Mute(member_id=member.id, guild_id=member.guild.id)
                 await user.insert(_conn=conn, _upsert="ON CONFLICT DO NOTHING")
-                await self.perm_override(member, send_messages=False, add_reactions=False)
+                await self.perm_override(member, send_messages=False, add_reactions=False, speak=False)
 
             self.bot.loop.create_task(
                 self.punishment_timer(seconds, member, Mute, reason, actor or member.guild.me, orig_channel=orig_channel))
@@ -170,7 +170,7 @@ class Moderation(Cog):
             user = await Mute.select_one(member_id=member.id, guild_id=member.guild.id, _conn=conn)
             if user is not None:
                 await user.delete(_conn=conn)
-                await self.perm_override(member, send_messages=None, add_reactions=None)
+                await self.perm_override(member, send_messages=None, add_reactions=None, speak=None)
                 return True
             else:
                 return False # member not muted
@@ -191,7 +191,7 @@ class Moderation(Cog):
             else:
                 user = Deafen(member_id=member.id, guild_id=member.guild.id, self_inflicted=self_inflicted, _conn=conn)
                 await user.insert(_conn=conn, _upsert="ON CONFLICT DO NOTHING")
-                await self.perm_override(member, read_messages=False)
+                await self.perm_override(member, read_messages=False, connect=False)
 
                 if self_inflicted and seconds == 0:
                     seconds = 30 # prevent lockout in case of bad argument
@@ -209,7 +209,7 @@ class Moderation(Cog):
         async with orm.acquire() as conn:
             user = await Deafen.select_one(member_id=member.id, guild_id=member.guild.id, _conn=conn)
             if user is not None:
-                await self.perm_override(member=member, read_messages=None)
+                await self.perm_override(member=member, read_messages=None, connect=None)
                 await user.delete(_conn=conn)
                 return True
             else:
