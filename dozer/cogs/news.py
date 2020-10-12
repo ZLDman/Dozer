@@ -12,7 +12,8 @@ from discord.ext import tasks
 from discord.ext.commands import guild_only, has_permissions, BadArgument
 
 from ._utils import *
-from .. import db
+from ..asyncdb.orm import orm
+from ..asyncdb import psqlt
 from ..sources import DataBasedSource, Source, sources
 
 DOZER_LOGGER = logging.getLogger('dozer')
@@ -409,24 +410,17 @@ def setup(bot):
     bot.add_cog(News(bot))
 
 
-class NewsSubscription(db.DatabaseTable):
+class NewsSubscription(orm.Model):
     """Represents a single subscription of one news source to one channel"""
     __tablename__ = 'news_subs'
-    __uniques__ = 'id'
+    __primary_key__ = ('id',)
 
-    @classmethod
-    async def initial_create(cls):
-        """Create the table in the database"""
-        async with db.Pool.acquire() as conn:
-            await conn.execute(f"""
-            CREATE TABLE {cls.__tablename__} (
-            id serial PRIMARY KEY NOT NULL,
-            channel_id bigint NOT NULL,
-            guild_id bigint NOT NULL,
-            source varchar NOT NULL,
-            data varchar,
-            kind varchar NOT NULL
-            )""")
+    id: psqlt.Column("serial PRIMARY KEY NOT NULL")
+    channel_id: psqlt.Column("bigint NOT NULL")
+    guild_id: psqlt.Column("bigint NOT NULL")
+    source: psqlt.Column("varchar NOT NULL")
+    data: psqlt.Column("varchar")
+    kind: psqlt.Column("varchar NOT NULL")
 
     def __init__(self, channel_id, guild_id, source, kind, data=None, sub_id=None):
         super().__init__()
@@ -439,11 +433,11 @@ class NewsSubscription(db.DatabaseTable):
 
     @classmethod
     async def get_by(cls, **kwargs):
-        results = await super().get_by(**kwargs)
-        result_list = []
-        for result in results:
-            obj = NewsSubscription(sub_id=result.get("id"), channel_id=result.get("channel_id"),
-                                   guild_id=result.get("guild_id"), source=result.get("source"),
-                                   kind=result.get("kind"), data=result.get("data"))
-            result_list.append(obj)
-        return result_list
+        """an alias for select()"""
+        return await cls.select(**kwargs)
+
+    @property
+    def sub_id(self):
+        """alias for self.id"""
+        return self.id
+
