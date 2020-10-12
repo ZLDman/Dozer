@@ -62,7 +62,7 @@ class RedditSource(DataBasedSource):
 
     async def request(self, url, *args, headers=None, **kwargs):
         """Make a request using OAuth2 (or not, if it's been disabled)"""
-        if datetime.datetime.now() > self.expiry_time:
+        if not self.oauth_disabled and datetime.datetime.now() > self.expiry_time:
             DOZER_LOGGER.info("Refreshing Reddit token due to expiry time")
             await self.get_token()
 
@@ -85,6 +85,10 @@ class RedditSource(DataBasedSource):
                 return await self.request(url, headers=headers, *args, **kwargs)
 
         json = await response.json()
+        if 'data' not in json:
+            DOZER_LOGGER.error(f"Getting new posts failed. Error: {json}")
+            return {}
+
         return json
 
     def create_subreddit_obj(self, data):
@@ -188,7 +192,7 @@ class RedditSource(DataBasedSource):
 
                 embed = self.generate_embed(post['data'])
                 plain = self.generate_plain_text(post['data'])
-                if 'subreddit' in post['data']:
+                if post['data']['subreddit'] in posts:
                     posts[post['data']['subreddit']]['embed'].append(embed)
                     posts[post['data']['subreddit']]['plain'].append(plain)
                 else:

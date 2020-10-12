@@ -112,8 +112,7 @@ class News(Cog):
                            f"{(next_run - datetime.datetime.now(datetime.timezone.utc)).total_seconds()}"
                            f" seconds.")
 
-    # Whenever version 1.4.0 of discord.py comes out, this can be uncommented. For now, use the get_exception commmand
-    @get_new_posts.error()
+    @get_new_posts.error
     async def log_exception(self, exception):
         DOZER_LOGGER.error(exception)
         self.get_new_posts.start()
@@ -156,7 +155,7 @@ class News(Cog):
                               f"subreddit you can use the command `{ctx.prefix}news add #channel reddit "
                               f"embed frc`")
         embed.add_field(name="Removing Subscriptions",
-                        value=f"To remove a source, like Chief Delphi, use `{ctx.prefix}news remove #channel `")
+                        value=f"To remove a source, like Chief Delphi, use `{ctx.prefix}news remove #channel cd`")
         embed.add_field(name="List all sources",
                         value=f"To see all sources, use `{ctx.prefix}news sources`")
         embed.add_field(name="List all subscriptions",
@@ -272,12 +271,14 @@ class News(Cog):
                                f"with data {data} found. Please contact the Dozer administrator for help.")
                 return
 
-            # TODO: Check if any other subscriptions use this data first
-            removed = await source.remove_data(data_obj)
-            if not removed:
-                DOZER_LOGGER.error(f"Failed to remove data {data_obj} from source {source.full_name}")
-                await ctx.send("Failed to remove data source. Please contact the Dozer Administrators.")
-                return
+            data_exists = await NewsSubscription.get_by(source=source.short_name, data=str(data_obj))
+            if len(data_exists) > 1:
+                removed = await source.remove_data(data_obj)
+                if not removed:
+                    DOZER_LOGGER.error(f"Failed to remove data {data_obj} from source {source.full_name}")
+                    await ctx.send("Failed to remove data source. Please contact the Dozer Administrators.")
+                    return
+
 
         else:
             sub = await NewsSubscription.get_by(channel_id=channel.id, guild_id=channel.guild.id,
