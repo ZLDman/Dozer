@@ -176,7 +176,7 @@ class CDLatest(RSSSource):
     base_url = "https://www.chiefdelphi.com/latest"
     full_name = "Chief Delphi"
     short_name = "cd"
-    description = "Official blog posts from the FIRST Robotics Competition"
+    description = "The newest, spiciest posts from the largest unofficial FRC forum"
     color = discord.colour.Color.orange()
 
 
@@ -196,7 +196,7 @@ class FTCBlogPosts(RSSSource):
     base_url = "http://firsttechchallenge.blogspot.com/"
     full_name = "FTC Blog Posts"
     short_name = "ftc"
-    description = "The official FTC Blogspot blog"
+    description = "The official FIRST Tech Challenge Blogspot blog"
     color = discord.colour.Color.orange()
 
 
@@ -206,7 +206,7 @@ class FTCForum(RSSSource):
     base_url = "https://ftcforum.firstinspires.org/"
     full_name = "FTC Forum Posts"
     short_name = "ftcforum"
-    description = "The official FTC Forum Posts"
+    description = "Posts from the official FIRST Tech Challenge Forum with Q&A"
     color = discord.colour.Color.orange()
 
 
@@ -230,7 +230,7 @@ class SpectrumBlog(RSSSource):
     full_name = "Spectrum Blog"
     short_name = "spectrum"
     aliases = ['3847']
-    description = "Blog Posts from team 3847, Spectrum"
+    description = "Blog Posts from FRC team 3847, Spectrum"
     color = discord.colour.Color.purple()
 
 

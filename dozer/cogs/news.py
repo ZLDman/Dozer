@@ -37,6 +37,11 @@ class News(Cog):
         self.updated = True
         self.http_source = None
         self.sources = {}
+
+    @Cog.listener()
+    async def on_ready(self):
+        """we move it here so that the db is guarenteed to be inited by this point, and really,
+        it should be here"""
         self.get_new_posts.change_interval(minutes=self.bot.config['news']['check_interval'])
         self.get_new_posts.start()
 
@@ -114,6 +119,7 @@ class News(Cog):
 
     @get_new_posts.error
     async def log_exception(self, exception):
+        """log an exception in the event loop"""
         DOZER_LOGGER.error(exception)
         self.get_new_posts.start()
 

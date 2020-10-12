@@ -13,6 +13,7 @@ One can use the defualt orm instance or instantiate your own for other dbs.
 
 """
 import json
+import asyncio
 import asyncpg
 
 from .psqlt import Column
@@ -23,6 +24,7 @@ class ORM:
     """Wrapper class for everything I guess..."""
     pool: asyncpg.pool.Pool
     def __init__(self):
+        self.ready_event = asyncio.Event()
         class Model:
             """Tables subclass this."""
             __schemaname__ = "public"
@@ -39,6 +41,10 @@ class ORM:
             def __repr__(self):
                 return self.__class__.__name__ + "(" + ", ".join(f"{key}={val!r}" for key, val in \
                         {key: getattr(self, key) for key in self._columns.keys() if getattr(self, key) is not None}.items()) + ")"
+
+            async def until_ready(self):
+                """Blocks the current task until the ORM is up and running."""
+                await self.ready_event.wait()
 
             @classmethod
             async def create_all_tables(cls):
@@ -77,6 +83,7 @@ class ORM:
                                 # is never fed user inputs, in which case you probably just want a real ORM anyway.
                                 query_str = f"CREATE TABLE IF NOT EXISTS {scls.__schemaname__}.{scls.__tablename__}({query_params})"
                                 await conn.fetch(query_str)
+                self.ready_event.set()
 
             @classmethod
             def from_record(cls, record: asyncpg.Record):
