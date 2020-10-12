@@ -466,3 +466,10 @@ class NewsSubscription(orm.Model):
         """alias for self.id"""
         return self.id
 
+    async def insert(self, _conn=None, _upsert=None, _fields=None):
+        """we need to redefine this for this class to account for some _serial_ shortcomings in the orm"""
+        fields = [k for k in self._columns.keys() if k != "id"]
+        qs = f"INSERT INTO {self.__schemaname__}.{self.__tablename__}({','.join(fields)}) VALUES(" + ",".join(
+            f"${i}" for i in range(1, len(fields) + 1)) + ") RETURNING id"
+        args = [qs] + [getattr(self, f) for f in fields]
+        return (await self._fetch(args, _one=True, conn=_conn))["id"]
