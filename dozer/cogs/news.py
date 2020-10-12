@@ -88,7 +88,11 @@ class News(Cog):
                 channel_dict[sub.data][channel] = sub.kind
 
             # We've gotten all of the channels we need to post to, lets get the posts and post them now
-            posts = await source.get_new_posts()
+            try:
+                posts = await source.get_new_posts()
+            except ElementTree.ParseError:
+                DOZER_LOGGER.error(f"XML Parser errored out on source f{source.full_name}")
+                continue
             if posts is None:
                 continue
 
@@ -109,9 +113,10 @@ class News(Cog):
                            f" seconds.")
 
     # Whenever version 1.4.0 of discord.py comes out, this can be uncommented. For now, use the get_exception commmand
-    # @get_new_posts.error()
-    # async def log_exception(self, exception):
-    #     DOZER_LOGGER.error(exception)
+    @get_new_posts.error()
+    async def log_exception(self, exception):
+        DOZER_LOGGER.error(exception)
+        self.get_new_posts.start()
 
     @get_new_posts.before_loop
     async def startup(self):
@@ -151,7 +156,7 @@ class News(Cog):
                               f"subreddit you can use the command `{ctx.prefix}news add #channel reddit "
                               f"embed frc`")
         embed.add_field(name="Removing Subscriptions",
-                        value=f"To remove a source, use `{ctx.prefix}news remove #channel `")
+                        value=f"To remove a source, like Chief Delphi, use `{ctx.prefix}news remove #channel `")
         embed.add_field(name="List all sources",
                         value=f"To see all sources, use `{ctx.prefix}news sources`")
         embed.add_field(name="List all subscriptions",
@@ -178,7 +183,7 @@ class News(Cog):
                               f"`{ctx.prefix}news add {source.short_name} {channel.mention} embed data`")
 
         if not channel.permissions_for(ctx.me).send_messages:
-            raise BadArgument(f"I don't have permission to post in f{channel.mention}.")
+            raise BadArgument(f"I don't have permission to post in {channel.mention}.")
 
         if channel.guild != ctx.guild:
             raise BadArgument(f"The channel {channel.mention} does not belong to this server.")
@@ -206,7 +211,9 @@ class News(Cog):
                 await ctx.send("Failed to add new data source. Please contact the Dozer Administrators.")
                 return
 
-            # TODO: Check if source is already added before adding
+            data_exists = await NewsSubscription.get_by(source=source.short_name, data=str(data_obj))
+            if not data_exists:
+                await source.add_data(data_obj)
         else:
             search_exists = await NewsSubscription.get_by(channel_id=channel.id, source=source.short_name)
 
@@ -415,7 +422,7 @@ class NewsSubscription(orm.Model):
     __tablename__ = 'news_subs'
     __primary_key__ = ('id',)
 
-    id: psqlt.Column("serial PRIMARY KEY NOT NULL")
+    id: psqlt.Column("serial")
     channel_id: psqlt.Column("bigint NOT NULL")
     guild_id: psqlt.Column("bigint NOT NULL")
     source: psqlt.Column("varchar NOT NULL")
@@ -440,4 +447,3 @@ class NewsSubscription(orm.Model):
     def sub_id(self):
         """alias for self.id"""
         return self.id
-
