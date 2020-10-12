@@ -445,12 +445,24 @@ class NewsSubscription(orm.Model):
         self.kind = kind
         self.data = data
 
+    async def update_or_add(self):
+        """an alias for upsert(),
+        at least in this case."""
+        return await self.upsert()
+
     @classmethod
     async def get_by(cls, **kwargs):
         """an alias for select()"""
         return await cls.select(**kwargs)
 
+    @classmethod
+    async def delete(cls, **kwargs):
+        # pylint: disable=arguments-differ
+        """an alias for delete_all()"""
+        return await cls.delete_all(**kwargs)
+
     @property
     def sub_id(self):
         """alias for self.id"""
         return self.id
+
