@@ -436,15 +436,6 @@ class NewsSubscription(orm.Model):
     data: psqlt.Column("varchar")
     kind: psqlt.Column("varchar NOT NULL")
 
-    def __init__(self, channel_id, guild_id, source, kind, data=None, sub_id=None):
-        super().__init__()
-        self.id = sub_id
-        self.channel_id = channel_id
-        self.guild_id = guild_id
-        self.source = source
-        self.kind = kind
-        self.data = data
-
     async def update_or_add(self):
         """an alias for upsert(),
         at least in this case."""
