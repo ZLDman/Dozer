@@ -154,7 +154,7 @@ class FRCBlogPosts(RSSSource):
     """Official blog posts from the FIRST Robotics Competition"""
     url = "https://www.firstinspires.org/robotics/frc/blog-rss"
     base_url = "https://www.firstinspires.org/robotics/frc/blog/"
-    full_name = "FRC Blog Posts"
+    full_name = "FRC Blog"
     short_name = "frc"
     description = "Official blog posts from the FIRST Robotics Competition"
     color = discord.colour.Color.dark_blue()
@@ -194,7 +194,7 @@ class FTCBlogPosts(RSSSource):
     """The official FTC Blogspot blog"""
     url = "http://firsttechchallenge.blogspot.com//feeds/posts/default"
     base_url = "http://firsttechchallenge.blogspot.com/"
-    full_name = "FTC Blog Posts"
+    full_name = "FTC Blog"
     short_name = "ftc"
     description = "Official blog posts from the FIRST Tech Challenge"
     color = discord.colour.Color.orange()
@@ -204,7 +204,7 @@ class FTCForum(RSSSource):
     """The official FTC Forum posts"""
     url = "https://ftcforum.firstinspires.org/external?type=rss2&nodeid=1"
     base_url = "https://ftcforum.firstinspires.org/"
-    full_name = "FTC Forum Posts"
+    full_name = "FTC Forum"
     short_name = "ftcforum"
     description = "Posts from the official FIRST Tech Challenge Forum with Q&A"
     color = discord.colour.Color.orange()
