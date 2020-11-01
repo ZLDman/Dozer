@@ -116,7 +116,7 @@ class RSSSource(Source):
             data['date'] = datetime.datetime.now()
 
         desc = clean_html(data['description'])
-        length = 1024 - len(self.read_more_str)
+        length = 2048 - len(self.read_more_str)
         if len(desc) >= length:
             data['description'] = desc[0:length] + self.read_more_str
         else:
@@ -126,18 +126,14 @@ class RSSSource(Source):
 
     def generate_embed(self, data):
         """Given a dictionary of data, generate a discord.Embed using that data"""
+
         embed = discord.Embed()
-        embed.title = f"New Post From {self.full_name}!"
+        embed.set_footer(text=self.full_name, icon_url="/".join("/".split(self.base_url)[:3]) + "/favicon.ico")
+        embed.title = data['title']
         embed.colour = self.color
-
-        embed.description = f"[{data['title']}]({data['url']})"
-
-        embed.url = self.base_url
-
-        embed.add_field(name="Description", value=data['description'])
-
+        embed.description = data['description']
+        embed.url = data['url']
         embed.set_author(name=data['author'])
-
         embed.timestamp = data['date']
 
         return embed
@@ -192,8 +188,8 @@ class FRCQA(RSSSource):
 
 class FTCBlogPosts(RSSSource):
     """The official FTC Blogspot blog"""
-    url = "http://firsttechchallenge.blogspot.com//feeds/posts/default"
-    base_url = "http://firsttechchallenge.blogspot.com/"
+    url = "https://firsttechchallenge.blogspot.com//feeds/posts/default"
+    base_url = "https://firsttechchallenge.blogspot.com/"
     full_name = "FTC Blog"
     short_name = "ftc"
     description = "Official blog posts from the FIRST Tech Challenge"
