@@ -532,7 +532,7 @@ class Roles(Cog):
 class RoleMenu(db.DatabaseTable):
     """Contains a role menu, used for editing and initial create"""
     __tablename__ = 'role_menus'
-    __primary_key__ = 'message_id'
+    __primary_key__ = ('message_id',)
 
     guild_id: psqlt.bigint
     channel_id: psqlt.bigint
@@ -542,7 +542,7 @@ class RoleMenu(db.DatabaseTable):
 class ReactionRole(db.DatabaseTable):
     """Contains a role menu entry"""
     __tablename__ = 'reaction_roles'
-    __primary_key__ = 'message_id, role_id'
+    __primary_key__ = ('message_id', 'role_id')
 
     guild_id: psqlt.bigint
     channel_id: psqlt.bigint
