@@ -53,13 +53,6 @@ class Roles(Cog):
         """Removes a reaction from a message"""
         await message.clear_reaction(entry.reaction)
 
-    @Cog.listener('on_ready')
-    async def on_ready(self):
-        """Restore tempRole timers on bot startup"""
-        q = await TempRoleTimerRecords.get_by()  # no filters: all
-        for record in q:
-            self.bot.loop.create_task(self.removal_timer(record))
-
     @Cog.listener()
     async def on_raw_message_delete(self, payload):
         """Used to remove dead reaction role entries"""
