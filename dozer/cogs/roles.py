@@ -382,7 +382,7 @@ class Roles(Cog):
                 boundroles.append(role.message_id)
             link = f"https://discordapp.com/channels/{rolemenu.guild_id}/{rolemenu.channel_id}/{rolemenu.message_id}"
             embed.add_field(name=f"Menu: {rolemenu.name}", value=f"[Contains {len(menu_entries)} role watchers]({link})", inline=False)
-        unbound_reactions = await db.Pool.fetch(f"""SELECT * FROM {ReactionRole.__tablename__} WHERE message_id != all($1)"""
+        unbound_reactions = await ReactionRole.fetchrow(f"""SELECT * FROM {ReactionRole.__tablename__} WHERE message_id != all($1)"""
                                                 f""" and guild_id = $2;""", boundroles, ctx.guild.id)
         combined_unbound = {}  # The following code is too group individual reaction role entries into the messages they are associated with
         if unbound_reactions:
