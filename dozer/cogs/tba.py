@@ -11,7 +11,10 @@ from discord.ext.commands import BadArgument
 import googlemaps
 import async_timeout
 import aiotba
+import pendulum
 from geopy.geocoders import Nominatim
+from timezonefinder import TimezoneFinder
+
 
 from ._utils import *
 
@@ -25,6 +28,7 @@ class TBA(Cog):
         tba_config = bot.config['tba']
         self.gmaps_key = bot.config['gmaps_key']
         self.session = aiotba.TBASession(tba_config['key'], self.bot.http_session)
+        self.tzf = TimezoneFinder()
         # self.parser = tbapi.TBAParser(tba_config['key'], cache=False)
 
     @group(invoke_without_command=True)
@@ -304,13 +308,17 @@ class TBA(Cog):
             if timezone["dstOffset"] == 3600:
                 utc_offset += 1
             tzname = timezone["timeZoneName"]
+        #elif self.bot.config['tz_url']:
+        #    async with async_timeout.timeout(5), self.bot.http_session.get(urljoin(
+        #            self.bot.config['tz_url'], f"{geolocation.latitude}/{geolocation.longitude}")) as r:
+        #        r.raise_for_status()
+        #        data = await r.json()
+        #        utc_offset = data["utc_offset"]
+        #        tzname = '`' + data["tz"] + '`'
         else:
-            async with async_timeout.timeout(5), self.bot.http_session.get(urljoin(
-                    self.bot.config['tz_url'], f"{geolocation.latitude}/{geolocation.longitude}")) as r:
-                r.raise_for_status()
-                data = await r.json()
-                utc_offset = data["utc_offset"]
-                tzname = '`' + data["tz"] + '`'
+            tz = self.tzf.certain_timezone_at(lat=geolocation.latitude, lng=geolocation.longitude)
+            tzname = '`' + str(tz) + '`'
+            utc_offset = int(pendulum.now(tz=tz).offset_hours)
 
         current_time = datetime.datetime.utcnow() + datetime.timedelta(hours=utc_offset)
 
