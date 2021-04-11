@@ -70,12 +70,15 @@ class Moderation(Cog):
         coros = []
         for channel in member.guild.channels:
             overwrite = channel.overwrites_for(member)
-            can_perm_override = channel.permissions_for(member.guild.me).manage_roles
-            if can_perm_override:
+            perms = channel.permissions_for(member.guild.me)
+            if perms.manage_roles and perms.manage_channels:
                 overwrite.update(**overwrites)
                 coros.append(
                     channel.set_permissions(target=member, overwrite=None if overwrite.is_empty() else overwrite))
-        await asyncio.gather(*coros)
+        try:
+            await asyncio.gather(*coros)
+        except discord.Forbidden as e:
+            getLogger("dozer").error(f"Failed to catch missing permissions: Error ({e}")
 
     hm_regex = re.compile(r"((?P<hours>\d+)h)?((?P<minutes>\d+)m)?((?P<seconds>\d+)s)?")
 
@@ -130,6 +133,12 @@ class Moderation(Cog):
         """Checks messages for the links role if necessary, then checks if the author is allowed to send links in the server"""
         if msg.guild is None or not isinstance(msg.author, discord.Member) or not msg.guild.me.guild_permissions.manage_messages:
             return
+
+        # this is a dirty hack
+        # (let people post links in #robotics-help, #media, #robot-showcase)
+        if msg.channel.id in [676583549561995274, 771188718198456321, 761068471252680704]:
+            return
+
         config: GuildConfig = await self.guild_config.query_one(guild_id=msg.guild.id)
         if config is None or config.links_role_id is None or config.links_role_id == msg.guild.id:
             return
