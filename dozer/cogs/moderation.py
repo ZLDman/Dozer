@@ -627,6 +627,21 @@ class Moderation(Cog):
     """
 
     @command()
+    @has_permissions(manage_roles=True)
+    @bot_has_permissions(manage_roles=True)
+    async def silentundeafen(self, ctx, member_mentions: discord.Member, reason="No reason provided"):
+        """Undeafen a user to allow them to see message and send message again, without sending it to global modlogs."""
+        async with ctx.typing():
+            if await self._undeafen(member_mentions):
+                await self.mod_log(actor=ctx.author, action="undeafened", target=member_mentions, reason=reason,
+                                   orig_channel=ctx.channel, embed_color=discord.Color.green(), global_modlog=False)
+            else:
+                await ctx.send("Member is not deafened!")
+    silentundeafen.example_usage = """
+    `{prefix}silentundeafen @user reason` - undeafen @user for a given (optional) reason, without sending it to global modlogs
+    """
+
+    @command()
     async def voicekick(self, ctx, member: discord.Member, reason="No reason provided"):
         """Kick a user from voice chat. This is most useful if their perms to rejoin have already been removed."""
         async with ctx.typing():
