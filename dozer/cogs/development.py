@@ -21,6 +21,7 @@ class Development(Cog):
     for module in ('asyncio', 'collections', 'discord', 'inspect', 'itertools'):
         eval_globals[module] = __import__(module)
     eval_globals['__builtins__'] = __import__('builtins')
+    eval_globals['orm'] = orm
 
     def cog_check(self, ctx):  # All of this cog is only available to devs
         if ctx.author.id not in ctx.bot.config['developers']:
@@ -129,9 +130,9 @@ def load_function(code, globals_, locals_):
     if len(lines) > 1:
         indent = 4
         for line in lines:
-            line_indent = re.search(r'\S', line).start()  # First non-WS character is length of indent
-            if line_indent:
-                indent = line_indent
+            match = re.search(r'\S', line)
+            if match and match.start(): # First non-WS character is length of indent
+                indent = match.start()
                 break
         line_sep = '\n' + ' ' * indent
         exec(function_header + line_sep + line_sep.join(lines), globals_, locals_)

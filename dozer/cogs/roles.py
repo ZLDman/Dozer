@@ -83,7 +83,7 @@ class Roles(Cog):
         guild_id = member.guild.id
         member_id = member.id
         async with orm.acquire() as conn:
-            await conn.fetch(f"DELETE FROM {MissingRole.table_name()} WHERE member_id=$1, guild_id=$2", member_id, guild_id)
+            await conn.fetch(f"DELETE FROM {MissingRole.table_name()} WHERE member_id=$1 AND guild_id=$2", member_id, guild_id)
             for role in member.roles[1:]:  # Exclude the @everyone role
                 await MissingRole(role_id=role.id, role_name=role.name,
                                   member_id=member_id, guild_id=guild_id).insert(_upsert="ON CONFLICT DO NOTHING", _conn=conn)
