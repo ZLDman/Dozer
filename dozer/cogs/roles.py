@@ -1,14 +1,16 @@
 """Role management commands."""
 
+import typing
+import logging
 import discord
 import discord.utils
-from discord.ext.commands import cooldown, BucketType, has_permissions, BadArgument, MissingPermissions
+from discord.ext.commands import cooldown, BucketType, has_permissions, BadArgument, MissingPermissions, guild_only
 
 from ._utils import *
 from ..asyncdb.orm import orm
 from ..asyncdb import psqlt
-
-
+blurple = discord.Color.blurple()
+dozer_logger = logging.getLogger('dozer')
 
 class Roles(Cog):
     """Commands for role management."""
@@ -88,7 +90,7 @@ class Roles(Cog):
                     elif payload.event_type == "REACTION_REMOVE":
                         await member.remove_roles(role, reason="Automatic Reaction Role")
                 except discord.Forbidden:
-                    DOZER_LOGGER.debug(f"Unable to add reaction role in guild {guild} due to missing permissions")
+                    dozer_logger.debug(f"Unable to add reaction role in guild {guild} due to missing permissions")
 
     @Cog.listener('on_member_join')
     async def on_member_join(self, member):
@@ -530,7 +532,7 @@ class Roles(Cog):
     `{prefix}rolemenu delrole <channel> <message id> <@robots or "Robots">`
     """
 
-class RoleMenu(db.DatabaseTable):
+class RoleMenu(orm.Model):
     """Contains a role menu, used for editing and initial create"""
     __tablename__ = 'role_menus'
     __primary_key__ = ('message_id',)
@@ -540,7 +542,7 @@ class RoleMenu(db.DatabaseTable):
     message_id: psqlt.bigint
     name: psqlt.text
 
-class ReactionRole(db.DatabaseTable):
+class ReactionRole(orm.Model):
     """Contains a role menu entry"""
     __tablename__ = 'reaction_roles'
     __primary_key__ = ('message_id', 'role_id')
