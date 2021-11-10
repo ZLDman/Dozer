@@ -27,6 +27,69 @@ class Roles(Cog):
         """Normalizes a role for consistency in the DB."""
         return name.strip().casefold()
 
+    @staticmethod
+    async def safe_message_fetch(ctx, menu=None, channel=None, message_id=None):
+        """Used to safely get a message and raise an error message cannot be found"""
+        try:
+            if menu:
+                channel = ctx.guild.get_channel(menu.channel_id)
+                return await channel.fetch_message(menu.message_id)
+            else:
+                if channel:
+                    return await channel.fetch_message(message_id)
+                else:
+                    return await ctx.message.channel.fetch_message(message_id)
+        except discord.HTTPException:
+            raise BadArgument("That message does not exist or is not in this channel!")
+
+    @staticmethod
+    async def add_to_message(message, entry):
+        """Adds a reaction role to a message"""
+        await message.add_reaction(entry.reaction)
+        await entry.update_or_add()
+
+    @staticmethod
+    async def del_from_message(message, entry):
+        """Removes a reaction from a message"""
+        await message.clear_reaction(entry.reaction)
+
+    @Cog.listener()
+    async def on_raw_message_delete(self, payload):
+        """Used to remove dead reaction role entries"""
+        message_id = payload.message_id
+        await ReactionRole.delete(message_id=message_id)
+        await RoleMenu.delete(message_id=message_id)
+
+    @Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        """Raw API event for reaction add, passes event to action handler"""
+        await self.on_raw_reaction_action(payload)
+
+    @Cog.listener()
+    async def on_raw_reaction_remove(self, payload):
+        """Raw API event for reaction remove, passes event to action handler"""
+        await self.on_raw_reaction_action(payload)
+
+    async def on_raw_reaction_action(self, payload):
+        """Called whenever a reaction is added or removed"""
+        message_id = payload.message_id
+        reaction = str(payload.emoji)
+        reaction_roles = await ReactionRole.get_by(message_id=message_id, reaction=reaction)
+        if len(reaction_roles):
+            guild = self.bot.get_guild(payload.guild_id)
+            member = guild.get_member(payload.user_id)
+            role = guild.get_role(reaction_roles[0].role_id)
+            if member.bot:
+                return
+            if role:
+                try:
+                    if payload.event_type == "REACTION_ADD":
+                        await member.add_roles(role, reason="Automatic Reaction Role")
+                    elif payload.event_type == "REACTION_REMOVE":
+                        await member.remove_roles(role, reason="Automatic Reaction Role")
+                except discord.Forbidden:
+                    DOZER_LOGGER.debug(f"Unable to add reaction role in guild {guild} due to missing permissions")
+
     @Cog.listener('on_member_join')
     async def on_member_join(self, member):
         """Restores a member's roles when they join if they have joined before."""
@@ -293,6 +356,200 @@ class Roles(Cog):
     `{prefix}rolecolor "Simbot Red"` - displays the color of the "Simbot Red" role in hexcode format
     `{prefix}rolecolor Bolb #FCC21B` - set the color of the "Bolb" role to #FCC21B
     """
+    async def update_role_menu(self, ctx, menu):
+        """Updates a reaction role menu"""
+        menu_message = await self.safe_message_fetch(ctx, menu=menu)
+
+        menu_embed = discord.Embed(title=f"Role Menu: {menu.name}")
+        menu_entries = await ReactionRole.get_by(message_id=menu.message_id)
+        for entry in menu_entries:
+            role = ctx.guild.get_role(entry.role_id)
+            menu_embed.add_field(name=f"Role: {role}", value=f"{entry.reaction}: {role.mention}", inline=False)
+        menu_embed.set_footer(text=f"React to get a role\nMenu ID: {menu_message.id}, Total roles: {len(menu_entries)}")
+        await menu_message.edit(embed=menu_embed)
+
+    @group(invoke_without_command=True, aliases=["reactionrole", "reactionroles"])
+    @bot_has_permissions(manage_roles=True, embed_links=True)
+    @has_permissions(manage_roles=True)
+    @guild_only()
+    async def rolemenu(self, ctx):
+        """Base command for setting up and tracking reaction roles"""
+        rolemenus = await RoleMenu.get_by(guild_id=ctx.guild.id)
+        embed = discord.Embed(title="Reaction Role Messages", color=blurple)
+        boundroles = []
+        for rolemenu in rolemenus:
+            menu_entries = await ReactionRole.get_by(message_id=rolemenu.message_id)
+            for role in menu_entries:
+                boundroles.append(role.message_id)
+            link = f"https://discordapp.com/channels/{rolemenu.guild_id}/{rolemenu.channel_id}/{rolemenu.message_id}"
+            embed.add_field(name=f"Menu: {rolemenu.name}", value=f"[Contains {len(menu_entries)} role watchers]({link})", inline=False)
+        unbound_reactions = await ReactionRole.fetchrow(f"""SELECT * FROM {ReactionRole.__tablename__} WHERE message_id != all($1)"""
+                                                f""" and guild_id = $2;""", boundroles, ctx.guild.id)
+        combined_unbound = {}  # The following code is too group individual reaction role entries into the messages they are associated with
+        if unbound_reactions:
+            for unbound in unbound_reactions:
+                guild_id = unbound.get("guild_id")
+                channel_id = unbound.get("channel_id")
+                message_id = unbound.get("message_id")
+                if combined_unbound.get(message_id):
+                    combined_unbound[message_id]["total"] += 1
+                else:
+                    combined_unbound[message_id] = {"guild_id": guild_id, "channel_id": channel_id, "message_id": message_id, "total": 1}
+        for combined in combined_unbound.values():
+            gid = combined["guild_id"]
+            cid = combined["channel_id"]
+            mid = combined["message_id"]
+            total = combined["total"]
+            link = f"https://discordapp.com/channels/{gid}/{cid}/{mid}"
+            embed.add_field(name=f"Custom Message: {mid}", value=f"[Contains {total} role watchers]({link})", inline=False)
+        embed.description = f"{ctx.bot.user.display_name} is tracking ({len(rolemenus) + len(combined_unbound)}) " \
+                            f"reaction role message(s) in **{ctx.guild}**"
+        await ctx.send(embed=embed)
+
+    rolemenu.example_usage = """
+    `{prefix}rolemenu createmenu #roles Example role menu`: Creates an empty role menu embed
+    `{prefix}rolemenu addrole <message id> @robots 🤖:` adds the reaction role 'robots' to the target message
+    `{prefix}rolemenu delrole <message id> @robots:` removes the reaction role 'robots' from the target message
+    """
+
+    @rolemenu.command()
+    @bot_has_permissions(manage_roles=True, embed_links=True)
+    @has_permissions(manage_roles=True)
+    @guild_only()
+    async def createmenu(self, ctx, channel: discord.TextChannel, *, name):
+        """Creates a blank reaction role menu"""
+        menu_embed = discord.Embed(title=f"Role Menu: {name}", description="React to get a role")
+        message = await channel.send(embed=menu_embed)
+
+        e = RoleMenu(
+            guild_id=ctx.guild.id,
+            channel_id=channel.id,
+            message_id=message.id,
+            name=name
+        )
+        await e.update_or_add()
+
+        menu_embed.set_footer(text=f"Menu ID: {message.id}, Total roles: {0}")
+        await message.edit(embed=menu_embed)
+
+        e = discord.Embed(color=blurple)
+        link = f"https://discordapp.com/channels/{ctx.guild.id}/{message.channel.id}/{message.id}"
+        e.add_field(name='Success!', value=f"I added created role menu [\"{name}\"]({link}) in channel {channel.mention}")
+        e.set_footer(text='Triggered by ' + ctx.author.display_name)
+        await ctx.send(embed=e)
+
+    createmenu.example_usage = """
+    `{prefix}rolemenu createmenu #roles Example role menu`: Creates an empty role menu embed
+    """
+
+    @rolemenu.command(aliases=["add"])
+    @bot_has_permissions(manage_roles=True, embed_links=True)
+    @has_permissions(manage_roles=True)
+    @guild_only()
+    async def addrole(self, ctx, channel: typing.Optional[discord.TextChannel], message_id: int, role: discord.Role,
+                      emoji: typing.Union[discord.Emoji, str]):
+        """Adds a reaction role to a message or a role menu"""
+        if isinstance(emoji, discord.Emoji) and emoji.guild_id != ctx.guild.id:
+            raise BadArgument(f"The emoji {emoji} is a custom emoji not from this server!")
+
+        if role > ctx.author.top_role:
+            raise BadArgument('Cannot give roles higher than your top role!')
+
+        if role > ctx.me.top_role:
+            raise BadArgument('Cannot give roles higher than my top role!')
+
+        if role == ctx.guild.default_role:
+            raise BadArgument("Cannot give @\N{ZERO WIDTH SPACE}everyone!")
+
+        if role.managed:
+            raise BadArgument("I am not allowed to assign that role!")
+
+        menu_return = await RoleMenu.get_by(guild_id=ctx.guild.id, message_id=message_id)
+        menu = menu_return[0] if len(menu_return) else None
+        message = await self.safe_message_fetch(ctx, menu=menu, channel=channel, message_id=message_id)
+
+        reaction_role = ReactionRole(
+            guild_id=ctx.guild.id,
+            channel_id=message.channel.id,
+            message_id=message.id,
+            role_id=role.id,
+            reaction=str(emoji)
+        )
+
+        old_reaction = await ReactionRole.get_by(message_id=message.id, role_id=role.id)
+        if len(old_reaction):
+            await self.del_from_message(message, old_reaction[0])
+        await self.add_to_message(message, reaction_role)
+
+        if menu:
+            await self.update_role_menu(ctx, menu)
+
+        e = discord.Embed(color=blurple)
+        link = f"https://discordapp.com/channels/{ctx.guild.id}/{message.channel.id}/{message_id}"
+        shortcut = f"[{menu.name}]({link})" if menu else f"[{message_id}]({link})"
+        e.add_field(name='Success!', value=f"I added {role.mention} to message \"{shortcut}\" with reaction {emoji}")
+        e.set_footer(text='Triggered by ' + ctx.author.display_name)
+        await ctx.send(embed=e)
+
+    addrole.example_usage = """
+    -----To target a role menu use this format-----
+    `{prefix}rolemenu addrole <message id> <@robots or "Robots"> 🤖`
+   -----To target a custom message use this format-----
+    `{prefix}rolemenu addrole <channel> <message id> <@robots or "Robots"> 🤖`
+    """
+
+    @rolemenu.command(aliases=["del"])
+    @bot_has_permissions(manage_roles=True, embed_links=True)
+    @has_permissions(manage_roles=True)
+    @guild_only()
+    async def delrole(self, ctx, channel: typing.Optional[discord.TextChannel], message_id: int, role: discord.Role):
+        """Removes a reaction role from a message or a role menu"""
+
+        menu_return = await RoleMenu.get_by(guild_id=ctx.guild.id, message_id=message_id)
+        menu = menu_return[0] if len(menu_return) else None
+        message = await self.safe_message_fetch(ctx, menu=menu, channel=channel, message_id=message_id)
+
+        reaction = await ReactionRole.get_by(message_id=message.id, role_id=role.id)
+        if len(reaction):
+            await self.del_from_message(message, reaction[0])
+            await ReactionRole.delete(message_id=message.id, role_id=role.id)
+        if menu:
+            await self.update_role_menu(ctx, menu)
+
+        e = discord.Embed(color=blurple)
+        link = f"https://discordapp.com/channels/{ctx.guild.id}/{message.channel.id}/{message_id}"
+        shortcut = f"[{menu.name}]({link})" if menu else f"[{message_id}]({link})"
+        e.add_field(name='Success!', value=f"I removed {role.mention} from message {shortcut}")
+        e.set_footer(text='Triggered by ' + ctx.author.display_name)
+        await ctx.send(embed=e)
+
+    delrole.example_usage = """
+    -----To target a role menu use this format-----
+    `{prefix}rolemenu delrole <message id> <@robots or "Robots">`
+    -----To target a custom message use this format-----
+    `{prefix}rolemenu delrole <channel> <message id> <@robots or "Robots">`
+    """
+
+class RoleMenu(db.DatabaseTable):
+    """Contains a role menu, used for editing and initial create"""
+    __tablename__ = 'role_menus'
+    __primary_key__ = ('message_id',)
+
+    guild_id: psqlt.bigint
+    channel_id: psqlt.bigint
+    message_id: psqlt.bigint
+    name: psqlt.text
+
+class ReactionRole(db.DatabaseTable):
+    """Contains a role menu entry"""
+    __tablename__ = 'reaction_roles'
+    __primary_key__ = ('message_id', 'role_id')
+
+    guild_id: psqlt.bigint
+    channel_id: psqlt.bigint
+    message_id: psqlt.bigint
+    role_id: psqlt.bigint
+    reaction: psqlt.varchar(100)
 
 class GiveableRole(orm.Model):
     """Database object for maintaining a list of giveable roles."""
