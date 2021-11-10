@@ -18,6 +18,11 @@ import asyncpg
 
 from .psqlt import Column
 
+class class_or_instancemethod(classmethod):
+    """cursed cursed cursed cursed cursed cursed cursed cursed cursed cursed cursed"""
+    def __get__(self, instance, type_):
+        descr_get = super().__get__ if instance is None else self.__func__.__get__
+        return descr_get(instance, type_)
 
 #pylint: disable=not-an-iterable,too-many-statements,too-many-locals
 class ORM:
@@ -152,6 +157,10 @@ class ORM:
                 fields = properties.keys()
                 qs = f"SELECT * FROM {cls.__schemaname__}.{cls.__tablename__} WHERE " + " AND ".join(f"{f}=${i}" for i, f in enumerate(fields, 1))
                 return await cls.fetchrow(*([qs] + list(properties.values())), _conn=_conn)
+            
+            async def update_or_add(self, *args, **kwargs):
+                """frcdozer orm compat"""
+                return await self.upsert(*args, **kwargs)
 
             async def update(self, _keys=None, _conn=None, **properties):
                 """Updates Models matching the specified properties in the database to the values of the Model object.
@@ -175,8 +184,15 @@ class ORM:
 
                 return await self.fetchrow(*([qs] + [getattr(self, f) for f in fields] + list(properties.values())), _conn=_conn)
 
-            async def delete(self, _conn=None, **properties):
+            @class_or_instancemethod
+            async def delete(self_or_cls, _conn=None, **properties):
                 """Deletes the matching Model from the database."""
+                if isinstance(self_or_cls, type):
+                    # this is used for frcdozer compat
+                    return await self_or_cls.delete_all(_conn=_conn, **properties)
+                else:
+                    self = self_or_cls
+
                 pkeys = self.__primary_key__ or tuple()
                 if not properties:
                     if not pkeys:
