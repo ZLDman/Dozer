@@ -140,6 +140,11 @@ class ORM:
                     return await cls.fetch(*([qs] + list(properties.values())), _conn=_conn)
 
             @classmethod
+            async def get_by(cls, *args, **kwargs):
+                """Lazy attempt at frcdozer "orm" compat"""
+                return await cls.select(*args, **kwargs)
+
+            @classmethod
             async def select_one(cls, _conn=None, **properties):
                 """Queries for a single Model matching the specified properties. Similar to .one_or_none() in sqlalchemy."""
                 if not properties:

@@ -76,7 +76,7 @@ class Roles(Cog):
         """Called whenever a reaction is added or removed"""
         message_id = payload.message_id
         reaction = str(payload.emoji)
-        reaction_roles = await ReactionRole.get_by(message_id=message_id, reaction=reaction)
+        reaction_roles = await ReactionRole.select(message_id=message_id, reaction=reaction)
         if len(reaction_roles):
             guild = self.bot.get_guild(payload.guild_id)
             member = guild.get_member(payload.user_id)
@@ -363,7 +363,7 @@ class Roles(Cog):
         menu_message = await self.safe_message_fetch(ctx, menu=menu)
 
         menu_embed = discord.Embed(title=f"Role Menu: {menu.name}")
-        menu_entries = await ReactionRole.get_by(message_id=menu.message_id)
+        menu_entries = await ReactionRole.select(message_id=menu.message_id)
         for entry in menu_entries:
             role = ctx.guild.get_role(entry.role_id)
             menu_embed.add_field(name=f"Role: {role}", value=f"{entry.reaction}: {role.mention}", inline=False)
@@ -376,11 +376,11 @@ class Roles(Cog):
     @guild_only()
     async def rolemenu(self, ctx):
         """Base command for setting up and tracking reaction roles"""
-        rolemenus = await RoleMenu.get_by(guild_id=ctx.guild.id)
+        rolemenus = await RoleMenu.select(guild_id=ctx.guild.id)
         embed = discord.Embed(title="Reaction Role Messages", color=blurple)
         boundroles = []
         for rolemenu in rolemenus:
-            menu_entries = await ReactionRole.get_by(message_id=rolemenu.message_id)
+            menu_entries = await ReactionRole.select(message_id=rolemenu.message_id)
             for role in menu_entries:
                 boundroles.append(role.message_id)
             link = f"https://discordapp.com/channels/{rolemenu.guild_id}/{rolemenu.channel_id}/{rolemenu.message_id}"
@@ -466,7 +466,7 @@ class Roles(Cog):
         if role.managed:
             raise BadArgument("I am not allowed to assign that role!")
 
-        menu_return = await RoleMenu.get_by(guild_id=ctx.guild.id, message_id=message_id)
+        menu_return = await RoleMenu.select(guild_id=ctx.guild.id, message_id=message_id)
         menu = menu_return[0] if len(menu_return) else None
         message = await self.safe_message_fetch(ctx, menu=menu, channel=channel, message_id=message_id)
 
@@ -478,7 +478,7 @@ class Roles(Cog):
             reaction=str(emoji)
         )
 
-        old_reaction = await ReactionRole.get_by(message_id=message.id, role_id=role.id)
+        old_reaction = await ReactionRole.select(message_id=message.id, role_id=role.id)
         if len(old_reaction):
             await self.del_from_message(message, old_reaction[0])
         await self.add_to_message(message, reaction_role)
@@ -507,11 +507,11 @@ class Roles(Cog):
     async def delrole(self, ctx, channel: typing.Optional[discord.TextChannel], message_id: int, role: discord.Role):
         """Removes a reaction role from a message or a role menu"""
 
-        menu_return = await RoleMenu.get_by(guild_id=ctx.guild.id, message_id=message_id)
+        menu_return = await RoleMenu.select(guild_id=ctx.guild.id, message_id=message_id)
         menu = menu_return[0] if len(menu_return) else None
         message = await self.safe_message_fetch(ctx, menu=menu, channel=channel, message_id=message_id)
 
-        reaction = await ReactionRole.get_by(message_id=message.id, role_id=role.id)
+        reaction = await ReactionRole.select(message_id=message.id, role_id=role.id)
         if len(reaction):
             await self.del_from_message(message, reaction[0])
             await ReactionRole.delete(message_id=message.id, role_id=role.id)
