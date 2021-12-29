@@ -496,7 +496,7 @@ class Moderation(Cog):
     """
 
     @command()
-    @has_permissions(manage_channels=True)
+    @has_permissions(manage_roles=True)
     @bot_has_permissions(manage_channels=True)
     async def slowmode(self, ctx, slowmode_delay: int):
         """Set the slowmode message delay for the current channel. Passing 0 disables slowmode."""
