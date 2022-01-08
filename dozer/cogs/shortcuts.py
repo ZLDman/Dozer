@@ -92,6 +92,8 @@ class Shortcuts(Cog):
             await ent.update()
         else:
             ent = ShortcutEntry()
+            ent.guild_id = ctx.guild.id
+            ent.name = cmd_name
             ent.value = cmd_msg
             await ent.insert()
         self.cache.invalidate_entry(guild_id=ctx.guild.id, name=cmd_name)
