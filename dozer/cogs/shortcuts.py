@@ -26,7 +26,7 @@ class Shortcuts(Cog):
         self.guild_table: Dict[int, Dict[str, str]] = {}
 
     """Commands for managing shortcuts/macros."""
-    @has_permissions(manage_message=True)
+    @has_permissions(manage_messages=True)
     @group(invoke_without_command=True)
     async def shortcuts(self, ctx):
         """
@@ -75,7 +75,7 @@ class Shortcuts(Cog):
             self.settings_cache.invalidate_entry(guild_id=ctx.guild.id)
         await ctx.send("Shortcuts have been revoked from this guild.")
     
-    @has_permissions(manage_messages=True)
+    @has_permissions(manage_messagess=True)
     @shortcuts.command()
     async def add(self, ctx, cmd_name, *, cmd_msg):
         settings: ShortcutSetting = await self.settings_cache.query_one(guild_id=ctx.guild.id)
@@ -98,7 +98,7 @@ class Shortcuts(Cog):
 
         await ctx.send("Updated command successfully.")
 
-    @has_permissions(manage_messages=True)
+    @has_permissions(manage_messagess=True)
     @shortcuts.command()
     async def remove(self, ctx, cmd_name):
         settings: ShortcutSetting = await self.settings_cache.query_one(guild_id=ctx.guild.id)
