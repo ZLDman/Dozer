@@ -26,7 +26,7 @@ class Shortcuts(Cog):
         self.guild_table: Dict[int, Dict[str, str]] = {}
 
     """Commands for managing shortcuts/macros."""
-    @has_permissions(manage_guild=True)
+    @has_permissions(manage_message=True)
     @group(invoke_without_command=True)
     async def shortcuts(self, ctx):
         """
@@ -41,7 +41,7 @@ class Shortcuts(Cog):
         e = discord.Embed()
         e.title = "Server shortcut configuration"
         #e.add_field("Shortcut spreadsheet", settings.spreadsheet or "Unset")
-        e.add_field("Shortcut prefix", settings.prefix or "[unset]")
+        e.add_field(name="Shortcut prefix", value=settings.prefix or "[unset]")
         await ctx.send(embed=e)
     
     @shortcuts.command()
@@ -61,6 +61,7 @@ class Shortcuts(Cog):
             settings.approved = True
             await settings.update()
         self.settings_cache.invalidate_entry(guild_id=ctx.guild.id)
+        await ctx.send("shortcuts approved for thils guild")
         
 
     @shortcuts.command()
@@ -74,7 +75,7 @@ class Shortcuts(Cog):
             self.settings_cache.invalidate_entry(guild_id=ctx.guild.id)
         await ctx.send("Shortcuts have been revoked from this guild.")
     
-    @has_permissions(manage_guild=True)
+    @has_permissions(manage_messages=True)
     @shortcuts.command()
     async def add(self, ctx, cmd_name, *, cmd_msg):
         settings: ShortcutSetting = await self.settings_cache.query_one(guild_id=ctx.guild.id)
@@ -97,7 +98,7 @@ class Shortcuts(Cog):
 
         await ctx.send("Updated command successfully.")
 
-    @has_permissions(manage_guild=True)
+    @has_permissions(manage_messages=True)
     @shortcuts.command()
     async def remove(self, ctx, cmd_name):
         settings: ShortcutSetting = await self.settings_cache.query_one(guild_id=ctx.guild.id)
@@ -121,7 +122,7 @@ class Shortcuts(Cog):
         embed = discord.Embed()
         embed.title = "shortcuts for this guild"
         for e in ents:
-            embed.add_field(e.name, e.value[:20])
+            embed.add_field(name=e.name, value=e.value[:20])
         await ctx.send(embed=embed)
 
     add.example_usage = """
@@ -135,33 +136,6 @@ class Shortcuts(Cog):
     `{prefix}shortcuts list - lists all shortcuts
     """
         
-
-        
-    async def reload_sheets(self, guild=None):
-        raise NotImplementedError("you should not call this")
-        if guild is None:
-            ents = ShortcutSetting.select()
-        else:
-            ents = [self.cache.query_one(guild_id=guild.id)]
-
-        for e in ents:
-            if not e.approved:
-                # clear table if not approved
-                self.guild_table[e.guild_id] = {}
-                continue
-            url = e.spreadsheet
-            new_table: Dict[str, str] = {}
-            try:
-                async with self.bot.http_session.get(url) as resp:
-                    csv_data = io.StringIO(await resp.read())
-                reader = csv.DictReader(csv_data)
-                for row in reader:
-                    new_table[row['command']] = row['text']
-            except Exception as e:
-                logging.getLogger("dozer").exception(f"Can't read csv data for {e.guild_id} -> {url}: ", e)
-                continue
-        pass
-
     @Cog.listener()
     async def on_ready(self):
         """reload sheets on_ready"""
