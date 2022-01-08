@@ -208,3 +208,7 @@ class ShortcutEntry(orm.Model):
     guild_id: psqlt.bigint
     name: psqlt.varchar(Shortcuts.MAX_LEN)
     value: psqlt.text
+
+def setup(bot):
+    """Adds the moderation cog to the bot."""
+    bot.add_cog(Shortcuts(bot))
