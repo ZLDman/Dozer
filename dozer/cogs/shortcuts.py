@@ -148,7 +148,7 @@ class Shortcuts(Cog):
         """prefix scanner"""
         if not msg.guild:
             return
-        setting = self.settings_cache.query_one(guild_id=msg.guild.id)
+        setting = await self.settings_cache.query_one(guild_id=msg.guild.id)
         if setting is None or not setting.approved:
             return
 
@@ -160,7 +160,7 @@ class Shortcuts(Cog):
         if not first.startswith(setting.prefix):
             return
         
-        ent = self.cache.query_one(guild_id=msg.guild.id, name=first[len(setting.prefix):])
+        ent = await self.cache.query_one(guild_id=msg.guild.id, name=first[len(setting.prefix):])
         if ent is None:
             return 
         await msg.channel.send(ent.value)
