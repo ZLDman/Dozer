@@ -81,6 +81,8 @@ class Shortcuts(Cog):
         settings: ShortcutSetting = await self.settings_cache.query_one(guild_id=ctx.guild.id)
         if settings is None or not settings.approved:
             raise BadArgument("this feature is not approved yet")
+        if not cmd_name.startswith(settings.prefix):
+            raise BadArgument("command must start with the prefix " + settings.prefix)
         if len(cmd_name) > self.MAX_LEN:
             raise BadArgument(f"command names can only be up to {self.MAX_LEN} chars long")
         if not cmd_msg:
@@ -159,12 +161,10 @@ class Shortcuts(Cog):
         if not c.startswith(setting.prefix):
             return
         
-        ent = await self.cache.query_one(guild_id=msg.guild.id, name=c[len(setting.prefix):])
+        ent = await ShortcutEntry.select_one(guild_id=msg.guild.id, name=c)
         if ent is None:
             return 
         await msg.channel.send(ent.value)
-
-        
 
 
 class ShortcutSetting(orm.Model):
