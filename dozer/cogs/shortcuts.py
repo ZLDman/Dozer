@@ -22,7 +22,7 @@ class Shortcuts(Cog):
         """cog init"""
         super().__init__(bot)
         self.settings_cache = configcache.AsyncConfigCache(ShortcutSetting)
-        self.cache = configcache.AsyncConfigCache(Shortcuts)
+        self.cache = configcache.AsyncConfigCache(ShortcutEntry)
         self.guild_table: Dict[int, Dict[str, str]] = {}
 
     """Commands for managing shortcuts/macros."""
