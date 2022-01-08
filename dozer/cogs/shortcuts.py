@@ -75,7 +75,7 @@ class Shortcuts(Cog):
             self.settings_cache.invalidate_entry(guild_id=ctx.guild.id)
         await ctx.send("Shortcuts have been revoked from this guild.")
     
-    @has_permissions(manage_messagess=True)
+    @has_permissions(manage_messages=True)
     @shortcuts.command()
     async def add(self, ctx, cmd_name, *, cmd_msg):
         settings: ShortcutSetting = await self.settings_cache.query_one(guild_id=ctx.guild.id)
@@ -98,7 +98,7 @@ class Shortcuts(Cog):
 
         await ctx.send("Updated command successfully.")
 
-    @has_permissions(manage_messagess=True)
+    @has_permissions(manage_messages=True)
     @shortcuts.command()
     async def remove(self, ctx, cmd_name):
         settings: ShortcutSetting = await self.settings_cache.query_one(guild_id=ctx.guild.id)
