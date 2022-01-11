@@ -123,11 +123,17 @@ class Shortcuts(Cog):
             raise BadArgument("this feature is not approved yet")
         
         ents: List[ShortcutEntry] = await ShortcutEntry.select(guild_id=ctx.guild.id)
-        embed = discord.Embed()
-        embed.title = "shortcuts for this guild"
-        for e in ents:
+        embed = None
+        for i, e in enumerate(ents):
+            if i % 20 == 0:
+                if embed is not None:
+                    await ctx.send(embed=embed)
+                embed = discord.Embed()
+                embed.title = "shortcuts for this guild"
             embed.add_field(name=e.name, value=e.value[:1024])
-        await ctx.send(embed=embed)
+            
+        if embed.fields:
+            await ctx.send(embed=embed)
 
     add.example_usage = """
     `{prefix}shortcuts add hello Hello, World!!!!` - adds !hello to the server
