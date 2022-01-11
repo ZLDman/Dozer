@@ -126,7 +126,7 @@ class Shortcuts(Cog):
         embed = discord.Embed()
         embed.title = "shortcuts for this guild"
         for e in ents:
-            embed.add_field(name=e.name, value=e.value[:20])
+            embed.add_field(name=e.name, value=e.value[:1024])
         await ctx.send(embed=embed)
 
     add.example_usage = """
