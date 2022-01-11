@@ -111,7 +111,7 @@ class Starboard(Cog):
         await self.on_reaction_add(reaction, member)
 
     @guild_only()
-    @group(invoke_without_command=True)
+    @group(invoke_without_command=True, case_insensitive=True)
     @bot_has_permissions(embed_links=True)
     async def starboard(self, ctx):
         """Show the current server's starboard configuration.

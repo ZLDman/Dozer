@@ -182,7 +182,7 @@ class Roles(Cog):
         rolelist = [role.id]
         await self.giveme_purge(rolelist)
 
-    @group(invoke_without_command=True)
+    @group(invoke_without_command=True, case_insensitive=True)
     @bot_has_permissions(manage_roles=True)
     async def giveme(self, ctx, *, roles):
         """Give you one or more giveable roles, separated by commas."""
@@ -370,7 +370,7 @@ class Roles(Cog):
         menu_embed.set_footer(text=f"React to get a role\nMenu ID: {menu_message.id}, Total roles: {len(menu_entries)}")
         await menu_message.edit(embed=menu_embed)
 
-    @group(invoke_without_command=True, aliases=["reactionrole", "reactionroles"])
+    @group(invoke_without_command=True, aliases=["reactionrole", "reactionroles"], case_insensitive=True)
     @bot_has_permissions(manage_roles=True, embed_links=True)
     @has_permissions(manage_roles=True)
     @guild_only()

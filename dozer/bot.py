@@ -65,7 +65,7 @@ class Dozer(commands.Bot):
         intents.members = True
         intents.presences = True
 
-        super().__init__(command_prefix=config['prefix'], intents=intents)
+        super().__init__(command_prefix=config['prefix'], intents=intents, case_insensitive=True)
         self.config = config
         self.logger = dozer_logger
         self._restarting = False

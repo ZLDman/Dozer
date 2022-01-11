@@ -663,7 +663,7 @@ class Moderation(Cog):
     """=== Configuration commands ==="""
 
     @has_permissions(manage_guild=True)
-    @group(invoke_without_command=True, aliases=("guildconfig",))
+    @group(invoke_without_command=True, aliases=("guildconfig",), case_insensitive=True)
     async def serverconfig(self, ctx):
         """Display server configuration information"""
         guild = ctx.guild

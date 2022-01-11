@@ -163,7 +163,7 @@ class NameGame(Cog):
         self.tba_parser = aiotba.TBASession(tba_config['key'], self.bot.http_session)
         # tbapi.TBAParser(tba_config['key'], cache=False)
 
-    @group(invoke_without_command=True)
+    @group(invoke_without_command=True, case_insensitive=True)
     async def ng(self, ctx):
         """Show info about and participate in a robotics team namegame.
         Run the help command on each of the subcommands for more detailed help.
