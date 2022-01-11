@@ -142,7 +142,7 @@ class News(Cog):
                 del self.sources[source.short_name]
                 DOZER_LOGGER.error(f"Parsing error in source {source.short_name}: {err}")
 
-    @group(invoke_without_command=True)
+    @group(invoke_without_command=True, case_insensitive=True)
     @guild_only()
     async def news(self, ctx):
         """Show help for news subscriptions"""

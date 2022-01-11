@@ -31,7 +31,7 @@ class TBA(Cog):
         self.tzf = TimezoneFinder()
         # self.parser = tbapi.TBAParser(tba_config['key'], cache=False)
 
-    @group(invoke_without_command=True)
+    @group(invoke_without_command=True, case_insensitive=True)
     async def tba(self, ctx, team_num: int):
         """
         Get FRC-related information from The Blue Alliance.

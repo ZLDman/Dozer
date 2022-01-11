@@ -103,7 +103,7 @@ class TOA(Cog):
                 }]
             }
 
-    @group(invoke_without_command=True)
+    @group(invoke_without_command=True, case_insensitive=True)
     async def toa(self, ctx, team_num: int, season: str = None):
         """
         Get FTC-related information from The Orange Alliance.
