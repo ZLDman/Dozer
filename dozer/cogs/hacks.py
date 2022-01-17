@@ -12,6 +12,8 @@ import random
 FTC_DISCORD_ID = 225450307654647808
 VERIFY_CHANNEL_ID = 333612583409942530
 JOINED_LOGS_ID = 350482751335432202
+FEEDS_CHANNEL_ID = 320719178132881408
+
 class Hacks(Cog):
 
     @Cog.listener()
@@ -45,6 +47,9 @@ _Please set your nickname with `%nick NAME - TEAM#` in #bot-spam to reflect your
             pass
             #await message.add_reaction("🐢")
             #await message.delete()
+
+        if message.channel.id == FEEDS_CHANNEL_ID:
+            await message.publish()
 
     @Cog.listener()
     async def on_message_edit(self, before, after):
