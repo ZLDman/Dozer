@@ -175,7 +175,7 @@ and locations of teams who may have moved around or renamed over the years. """.
             website = "http://" + website
         e = discord.Embed(color=embed_color,
                           title=f'FIRST® Tech Challenge Team {team_num}',
-                          url=f'https://www.theorangealliance.org/teams/{team_num}')
+                          url=f'https://ftc-events.firstinspires.org/2021/team/{team_num}')
         e.add_field(name='Name', value=season_data["name"].strip() or "_ _")  # renders as blank on clients
         e.add_field(name='Rookie Year', value=team_data['rookie_year'])
         e.add_field(name='Location', value=', '.join((season_data["city"], season_data["state_prov"], season_data["country"])))
@@ -183,8 +183,8 @@ and locations of teams who may have moved around or renamed over the years. """.
         if season_data["motto"].strip():
             e.add_field(name='Motto', value=season_data['motto'])
         # e.add_field(name='Team Info Page', value=f'https://www.theorangealliance.org/teams/{team_num}')
-        e.set_footer(text=f'May contain data from FIRST with TOA data. For more information, see '
-                          f'{ctx.prefix}toa disclaimer')
+        #e.set_footer(text=f'May contain data from FIRST with TOA data. For more information, see '
+        #                  f'{ctx.prefix}toa disclaimer')
         await ctx.send('', embed=e)
 
     team.example_usage = """
