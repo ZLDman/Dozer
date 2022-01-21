@@ -505,7 +505,7 @@ class Moderation(Cog):
     `{prefix}slowmode 20` - set slowmode to 20 seconds per message per user
     """
 
-    @command(aliases=["vent"])
+    @command(aliases=["eject"])
     @guild_only()
     @has_permissions(ban_members=True)
     @bot_has_permissions(ban_members=True)
