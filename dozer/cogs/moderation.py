@@ -516,7 +516,7 @@ class Moderation(Cog):
             await ctx.send(f"{ctx.author.mention}, this user's top role is the same as or higher than mine!")
             return
         await self.mod_log(actor=ctx.author, action="banned", target=user_mention, reason=reason, orig_channel=ctx.channel)
-        await ctx.guild.ban(user_mention, reason=reason)
+        await ctx.guild.ban(user_mention, reason=reason, delete_message_days=0)
     ban.example_usage = """
     `{prefix}ban @user reason` - ban @user for a given (optional) reason
     """
