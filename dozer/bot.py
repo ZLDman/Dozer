@@ -58,7 +58,7 @@ class DozerContext(commands.Context):
 
 class Dozer(commands.Bot):
     """Botty things that are critical to Dozer working"""
-    _global_cooldown = commands.Cooldown(1, 1, commands.BucketType.user)  # One command per second per user
+    #_global_cooldown = commands.Cooldown(1, 1, commands.BucketType.user)  # One command per second per user
 
     def __init__(self, config):
         intents = discord.Intents.default()
@@ -154,7 +154,7 @@ class Dozer(commands.Bot):
         """Checks that should be executed before passed to the command"""
         if ctx.author.bot:
             raise InvalidContext('Bots cannot run commands!')
-        retry_after = self._global_cooldown.update_rate_limit()
+        retry_after = False #self._global_cooldown.update_rate_limit()
         if retry_after and not hasattr(ctx, "is_pseudo"): # bypass ratelimit for su'ed commands
             raise InvalidContext('Global rate-limit exceeded!')
         return True
