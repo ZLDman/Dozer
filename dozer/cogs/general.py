@@ -71,7 +71,7 @@ class General(Cog):
                              description='The guild management bot for the FTC server' if self.name == "FTC Server Dozer" else
                              'A guild management bot for FIRST Discord servers',
                              color=discord.Color.blue())
-        info.set_thumbnail(url=self.bot.user.avatar_url)
+        info.set_thumbnail(url=self.bot.user.avatar.url)
         info.add_field(name='About',
                        value=f"{self.name}: A collaborative bot for the FIRST Discord community, developed by the FRC "
                              "Discord Server Development Team and @guineawheek#9117")

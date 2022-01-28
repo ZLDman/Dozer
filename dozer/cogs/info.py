@@ -49,7 +49,7 @@ class Info(Cog):
         if member is None:
             member = ctx.author
 
-        icon_url = member.avatar_url_as(static_format='png')
+        icon_url = member.avatar.replace(static_format='png')
 
         embed = discord.Embed(title=member.display_name, description=f'{member!s} ({member.id})', color=member.color)
         embed.add_field(name='Bot Created' if member.bot else 'Account Created',

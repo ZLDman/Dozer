@@ -20,6 +20,10 @@ config = {
         'app_name': 'Dozer',
         'teamdata_url': ''
     },
+    'ftc_events': {
+        "user": "Put FTC-Events user here",
+        "token": "Put FTC-Events token here",
+    },
     'log_level': 'INFO',
     'db_url': 'postgres:///dozer',
     'gmaps_key': "PUT GOOGLE MAPS API KEY HERE",
