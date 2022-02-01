@@ -7,7 +7,7 @@ from collections.abc import Mapping
 import discord
 from discord.ext import commands
 
-__all__ = ['bot_has_permissions', 'command', 'group', 'Cog', 'Reactor', 'Paginator', 'paginate', 'chunk', 'dev_check']
+__all__ = ['bot_has_permissions', 'command', 'group', 'Cog', 'Reactor', 'Paginator', 'paginate', 'chunk', 'dev_check', 'member_avatar_url']
 
 
 class CommandMixin:
@@ -295,3 +295,10 @@ def bot_has_permissions(**required):
             func.__required_permissions__.update(**required)
         return func
     return decorator
+
+def member_avatar_url(m: discord.Member, static_format='png', size=32):
+    """return avatar url"""
+    if m.avatar is not None:
+        return m.avatar.replace(static_format=static_format, size=size)
+    else:
+        return None

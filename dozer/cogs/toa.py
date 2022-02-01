@@ -22,7 +22,7 @@ class TOA(Cog):
     """TOA commands"""
     def __init__(self, bot):
         super().__init__(bot)
-        self.parser = TOASession(bot.config['toa']['key'], bot.config['toa']['app_name'], bot.http_session)
+        #self.parser = TOASession(bot.config['toa']['key'], bot.config['toa']['app_name'], bot.http_session)
 
     @staticmethod
     def get_current_season():
@@ -82,6 +82,7 @@ class TOA(Cog):
                     async_timeout.timeout(5) as _:
                 return await response.json() if response.status < 400 else {}
         else:
+            raise RuntimeError("teamdata not configured")
             try:
                 toa_data = await self.parser.team(team_num)
             except AioTOAError:

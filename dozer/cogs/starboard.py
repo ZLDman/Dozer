@@ -25,7 +25,7 @@ class Starboard(Cog):
     def make_starboard_embed(self, msg: discord.Message): #, emoji=None, reaction_count=None):
         """Makes a starboard embed."""
         e = discord.Embed(color=discord.Color.gold())
-        e.set_author(name=msg.author.display_name, icon_url=msg.author.avatar.url)
+        e.set_author(name=msg.author.display_name, icon_url=member_avatar_url(msg.author))
         if len(msg.content):
             e.description = msg.content
 

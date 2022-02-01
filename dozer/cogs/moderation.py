@@ -253,7 +253,7 @@ class Moderation(Cog):
     async def on_member_join(self, member):
         """Logs that a member joined."""
         join = discord.Embed(type='rich', color=0x00FF00)
-        join.set_author(name='Member Joined', icon_url=member.avatar.replace(format='png', size=32))
+        join.set_author(name='Member Joined', icon_url=member_avatar_url(member))
         join.description = "{0.mention}\n{0} ({0.id})".format(member)
         join.set_footer(text="{} | {} members".format(member.guild.name, member.guild.member_count))
 
@@ -274,7 +274,7 @@ class Moderation(Cog):
     async def on_member_remove(self, member):
         """Logs that a member left."""
         leave = discord.Embed(type='rich', color=0xFF0000)
-        leave.set_author(name='Member Left', icon_url=member.avatar.replace(format='png', size=32))
+        leave.set_author(name='Member Left', icon_url=member_avatar_url(member))
         leave.description = "{0.mention}\n{0} ({0.id})".format(member)
         leave.set_footer(text="{} | {} members".format(member.guild.name, member.guild.member_count))
 
@@ -312,7 +312,7 @@ class Moderation(Cog):
             return
         e = discord.Embed(type='rich', title='Message Deleted', color=0xff0000)
         e.timestamp = datetime.datetime.utcnow()
-        e.set_author(name=f"{message.author} in #{message.channel}", icon_url=message.author.avatar.url)
+        e.set_author(name=f"{message.author} in #{message.channel}", icon_url=member_avatar_url(message.author))
         e.add_field(name='Channel link', value=message.channel.mention)
         e.add_field(name='Author pingable', value=message.author.mention)
 
@@ -345,7 +345,7 @@ class Moderation(Cog):
             # There is a reason for this. That reason is that otherwise, an infinite spam loop occurs
             e = discord.Embed(type='rich', title='Message Edited', color=0xffc400)
             e.timestamp = after.edited_at
-            e.set_author(name=f"{before.author} in #{before.channel}", icon_url=before.author.avatar.url)
+            e.set_author(name=f"{before.author} in #{before.channel}", icon_url=member_avatar_url(before.author))
 
             if 1024 > len(before.content) > 0:
                 e.add_field(name="Old message", value=before.content)
@@ -434,7 +434,7 @@ class Moderation(Cog):
 
         e = discord.Embed(title='Timeout - {}s'.format(duration), description='This channel has been timed out.',
                           color=discord.Color.blue())
-        e.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.replace(format='png', size=32))
+        e.set_author(name=ctx.author.display_name, icon_url=member_avatar_url(ctx.author))
         msg = await ctx.send(embed=e)
 
         await asyncio.sleep(duration)
