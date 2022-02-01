@@ -43,9 +43,10 @@ class Hacks(Cog):
 _Please set your nickname with `%nick NAME - TEAM#` in #bot-spam to reflect your team number, or your role in FIRST Robotics if you are not affiliated with a team. If you are not a part of or affiliated directly with a FIRST® Tech Challenge team or the program itself, please contact an administrator for further details._""")
             await member.edit(nick=(message.author.display_name[:20] + " | SET TEAM#"))
             return
-        if message.guild and message.guild.id == FTC_DISCORD_ID and "🐢" in message.content and message.author.id != self.bot.user.id:
-            pass
-            #await message.add_reaction("🐢")
+        if message.guild and message.guild.id == FTC_DISCORD_ID and "🥱" in message.content and message.author.id != self.bot.user.id:
+            await message.add_reaction("🛏️")
+            await message.add_reaction("🌙")
+            await message.add_reaction("💤")
             #await message.delete()
 
         if message.channel.id == FEEDS_CHANNEL_ID:
