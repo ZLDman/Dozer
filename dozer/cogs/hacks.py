@@ -68,8 +68,9 @@ _Please set your nickname with `%nick NAME - TEAM#` in #bot-spam to reflect your
     async def on_reaction_add(self, reaction, user):
         #return
         message = reaction.message
-        if message.guild and message.guild.id == FTC_DISCORD_ID and reaction.emoji == "🐢":
-            await self.clear_reactions(reaction)
+        if message.guild and message.guild.id == FTC_DISCORD_ID  and message.channel.id == 771188718198456321 and reaction.emoji == "🍞":
+            await reaction.message.remove_reaction(reaction, user)
+            #await self.clear_reactions(reaction)
         #if message.guild and message.guild.id == FTC_DISCORD_ID and message.content.lower().startswith("no u") and message.author.id != self.bot.user.id:
         #    await message.channel.send("no u")
 
