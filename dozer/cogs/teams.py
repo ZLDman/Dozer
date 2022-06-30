@@ -2,6 +2,7 @@
 
 import collections
 import discord
+import re
 from discord.ext.commands import BadArgument, guild_only
 
 from ._utils import *
@@ -98,14 +99,25 @@ class Teams(Cog):
         """Allows you to see who has associated themselves with a particular team."""
         team_type, team_number = self.validate(team_type, team_number)
         users = await TeamNumbers.select(team_number=team_number, team_type=team_type)
-        if not users:
+
+        user_ids = [user.user_id for user in users]
+
+        # do not do it for one/two digit team numbers because it pollutes the output
+        if len(str(team_number)) > 2:
+            team_number_regex = re.compile(f".*(\D|^){team_number}(\D|$)")
+            user_ids.extend([member.id for member in ctx.guild.members
+                             if member.nick != None and team_number_regex.match(member.nick)])
+
+        if not user_ids:
             await ctx.send("Nobody on that team found!")
         else:
             e = discord.Embed(type='rich')
             e.title = 'Users on team {}'.format(team_number)
             segments = ["Users: \n"]
-            for i in users:
-                user = ctx.guild.get_member(i.user_id)
+
+
+            for i in set(user_ids):
+                user = ctx.guild.get_member(i)
                 if user is not None:
                     line = f"{user.display_name} {user.mention}\n"
                     if len(segments[-1]) + len(line) >= 1024:
