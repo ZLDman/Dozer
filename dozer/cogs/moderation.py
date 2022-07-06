@@ -456,6 +456,10 @@ class Moderation(Cog):
     @bot_has_permissions(manage_messages=True, read_message_history=True)
     async def prune(self, ctx, num_to_delete: int):
         """Bulk delete a set number of messages from the current channel."""
+        if num_to_delete > 100:
+            await ctx.send("Cannot purge more than 100 messages!")
+            return
+
         await ctx.message.channel.purge(limit=num_to_delete + 1)
         await ctx.send(
             "Deleted {n} messages under request of {user}".format(n=num_to_delete, user=ctx.message.author.mention),
