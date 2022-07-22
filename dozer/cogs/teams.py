@@ -87,6 +87,8 @@ class Teams(Cog):
             e.description = "Teams: \n"
             for i in teams:
                 e.description = "{} {} Team {} \n".format(e.description, i.team_type.upper(), i.team_number)
+            if len(e.description) > 4000:
+                e.description = e.description[:4000] + "..."
             await ctx.send(embed=e)
 
     teamsfor.example_usage = """
