@@ -166,12 +166,15 @@ class Shortcuts(Cog):
         
         if not c.startswith(setting.prefix):
             return
-        
-        ent = await ShortcutEntry.select_one(guild_id=msg.guild.id, name=c)
-        if ent is None:
-            return 
-        await msg.channel.send(ent.value)
 
+        shortcuts = await ShortcutEntry.select(guild_id=msg.guild.id)
+        if not shortcuts:
+            return
+
+        for shortcut in shortcuts:
+            if c.lower().startswith(shortcut.name.lower()):
+                await msg.channel.send(shortcut.value)
+                return
 
 class ShortcutSetting(orm.Model):
     """Provides a DB config to track mutes."""
