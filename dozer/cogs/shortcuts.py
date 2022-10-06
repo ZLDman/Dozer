@@ -172,7 +172,7 @@ class Shortcuts(Cog):
             return
 
         for shortcut in shortcuts:
-            if c.lower().startswith(shortcut.name.lower()):
+            if c.lower() == shortcut.name.lower():
                 await msg.channel.send(shortcut.value)
                 return
 
