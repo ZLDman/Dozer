@@ -1,7 +1,9 @@
 """Provides commands that pull information from First Q&A Form."""
 import discord
 
-import requests
+import aiohttp
+import asyncio
+
 from bs4 import BeautifulSoup
 
 embed_color = discord.color.blue()
@@ -17,7 +19,9 @@ class QA(Cog):
         """
         Shows Answers from the FTC Q&A
         """
-        html_data = requests.get('https://ftc-qa.firstinspires.org/onepage.html').text
+        async with aiohttp.ClientSession() as session:
+          async with session.get('https://ftc-qa.firstinspires.org/onepage.html') as response:
+              html_data = await response.text()
 
         answers =  BeautifulSoup(html_data, 'html.parser').get_text()
 
@@ -52,7 +56,7 @@ class QA(Cog):
           await ctx.send(embed=embed)
 
         else:
-          a = "That Question was not answered or does not exist."
+          a = "That question was not answered or does not exist."
 
           #add url
           a += "\nhttps://ftc-qa.firstinspires.org/qa/" + question
